@@ -3,10 +3,10 @@
 Exposes:
 - `root_agent`: A SequentialAgent composing the Planner <-> Auditor Loop, Flyer Agent, and Director Agent.
 - Sub-Agents:
-  1. `planner_agent`: Siting strategist with BigQuery & Weather tools (race-blind).
-  2. `auditor_agent`: Independent watchdog (isolated context) enforcing all 5 traps and post-hoc equity.
-  3. `flyer_agent`: 6th-grade bilingual community outreach author (contradictory to auditor).
-  4. `director_agent`: Executive briefer and judge rubric respondent (contradictory to flyer).
+  1. `planner_agent`: Siting strategist with BigQuery & Weather tools (race-blind, gemini-3.6-pro).
+  2. `auditor_agent`: Independent watchdog (isolated context, gemini-3.6-pro) enforcing all 5 traps and post-hoc equity.
+  3. `flyer_agent`: 6th-grade bilingual community outreach author (contradictory to auditor, gemini-2.5-flash-image).
+  4. `director_agent`: Executive briefer and policy analyst (contradictory to flyer).
 - `run_broker()`: Async runner using Google ADK's InMemoryRunner.
 """
 
@@ -41,14 +41,16 @@ from agent.tools.equity_audit import (
 from agent.tools.weather_aq import get_saturday_weather_and_air_quality
 from agent.tools.maps_landmarks import resolve_stop_landmark_and_map_context
 
-DEFAULT_MODEL = os.environ.get("ADK_MODEL", "gemini-2.5-flash")
+PRO_MODEL = os.environ.get("ADK_PRO_MODEL", "gemini-3.6-pro")
+FLYER_IMAGE_MODEL = os.environ.get("ADK_FLYER_MODEL", "gemini-2.5-flash-image")
+DEFAULT_MODEL = os.environ.get("ADK_MODEL", PRO_MODEL)
 
 # =====================================================================
 # 1. PLANNER SUB-AGENT (Siting Strategist & Clinical Lead)
 # =====================================================================
 planner_agent = LlmAgent(
     name="PlannerSubAgent",
-    model=DEFAULT_MODEL,
+    model=PRO_MODEL,
     instruction=PLANNER_SYSTEM_PROMPT,
     tools=[
         score_bronx_tracts,
@@ -64,7 +66,7 @@ planner_agent = LlmAgent(
 # =====================================================================
 auditor_agent = LlmAgent(
     name="AuditAccountabilitySubAgent",
-    model=DEFAULT_MODEL,
+    model=PRO_MODEL,
     instruction=AUDITOR_SYSTEM_PROMPT,
     include_contents="none",
     tools=[
@@ -90,7 +92,7 @@ siting_and_audit_loop = LoopAgent(
 # =====================================================================
 flyer_agent = LlmAgent(
     name="ExclusiveFlyerAgent",
-    model=DEFAULT_MODEL,
+    model=FLYER_IMAGE_MODEL,
     instruction=FLYER_SYSTEM_PROMPT,
     tools=[
         resolve_stop_landmark_and_map_context,
