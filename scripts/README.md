@@ -50,3 +50,12 @@ county you picked has the thing you are about to build on:
   does not exist there, and you want to know at minute five.
 
 None of those stops the load. All three change what you should build.
+
+---
+
+## Bronx Supplemental Loader & Cleaning Pipeline (`load_supplement_bronx.py` & `clean_and_analyze_bq.py`)
+
+For **Bronx County, NY (`36005`)**, two Python scripts extend and clean the BigQuery datasets across `a4i_health` (race-free Siting/Planner dataset, **18 tables**) and `a4i_health_audit` (restricted Equity Auditor dataset, **1 table + 1 view**):
+
+1. **`python scripts/load_supplement_bronx.py`** — End-to-end loader that loads the 10 core Challenge 5 tables plus 8 supplemental tables in `a4i_health` (`places_supplement_tracts`, `svi_supplement_tracts`, `tract_neighbors`, `shortage_areas_all_disciplines`, `shortage_mua_tracts`, `exposure_supplement_tracts`, `climate_heat_risk_tracts`, `noaa_seasonal_heat`, `tract_access_bronx_enhanced`, `planner_tract_features`) and the restricted `a4i_health_audit` dataset (`equity_audit_tracts`, `v_bronx_equity_baseline`), with all 6 data cleaning fixes baked in.
+2. **`python scripts/clean_and_analyze_bq.py`** — Standalone idempotent cleaning and analytical verification script that can be run against an existing `a4i_health` + `a4i_health_audit` deployment to apply the 6 cleaning fixes and print the quantitative signal-to-noise and equity audit report (see [`docs/bq_dataset_cleaning_and_analysis_report.md`](../docs/bq_dataset_cleaning_and_analysis_report.md)).
