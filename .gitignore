@@ -22,3 +22,7 @@ Thumbs.db
 # Local data
 *.parquet
 *.csv.gz
+
+# ADK runtime
+.adk/
+*.db
