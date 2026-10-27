@@ -21,7 +21,9 @@ DATASET_ID = os.environ.get("A4I_DATASET", "a4i_health")
 BRONX_FIPS = "36005"
 
 _CACHE: dict[str, Any] = {}
-DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_ROOT_DATA = Path(__file__).resolve().parent.parent.parent / "data"
+_PKG_DATA = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = _ROOT_DATA if _ROOT_DATA.exists() else _PKG_DATA
 
 
 def _get_bq_client() -> bigquery.Client:

@@ -20,7 +20,9 @@ from google.cloud import bigquery
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-c81d344a3430")
 DATASET_ID = os.environ.get("A4I_DATASET", "a4i_health")
 AUDIT_DATASET_ID = os.environ.get("A4I_AUDIT_DATASET", "a4i_health_audit")
-DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
+_ROOT_DATA = Path(__file__).resolve().parent.parent.parent / "data"
+_PKG_DATA = Path(__file__).resolve().parent.parent / "data"
+DATA_DIR = _ROOT_DATA if _ROOT_DATA.exists() else _PKG_DATA
 
 _DEMO_CACHE: dict[str, dict[str, Any]] | None = None
 
