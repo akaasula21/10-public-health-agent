@@ -141,6 +141,14 @@ def load_tracts_geojson(county_fips: str = COUNTY_FIPS) -> dict[str, Any]:
     )
 
 
+# Backward-compatible convenience aliases
+load_clean_tracts = load_clean_tracts_df
+load_clean_care_sites = load_clean_care_sites_df
+load_clean_equity_audit = load_clean_equity_audit_df
+
+
 def load_bronx_tracts_geojson() -> dict[str, Any]:
     """Backward-compatible alias for `load_tracts_geojson`."""
     return load_tracts_geojson(county_fips=COUNTY_FIPS)
+
+
