@@ -187,3 +187,19 @@ async def run_broker(
         "director_briefing": final_state.get("director_briefing"),
         "session_state": final_state,
     }
+
+
+def startup_init(force: bool = False) -> dict[str, Any]:
+    """Execute startup checks to ensure BigQuery data is cleaned and local cache/database is ready."""
+    from agent.data.cleaner import ensure_data_loaded_and_cleaned
+    return ensure_data_loaded_and_cleaned(force=force)
+
+
+# When deployed in a container (e.g. Cloud Run, K8s, or adk web), check/clean data on startup
+if os.environ.get("AUTO_STARTUP_DATA_CHECK", "1") == "1":
+    try:
+        startup_init()
+    except Exception:
+        # Non-fatal during import so offline/mock test suites can run without BigQuery access
+        pass
+

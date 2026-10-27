@@ -113,6 +113,10 @@ def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
                 rows.append({
                     "geo_id": geo_id,
                     "location_name": f"Census Tract {geo_id[-6:]}, Bronx County, NY",
+                    "neighborhood": str(r.get("neighborhood") or ""),
+                    "landmark_name": str(r.get("landmark_name") or ""),
+                    "street_intersection": str(r.get("street_intersection") or ""),
+                    "sub_corridor": str(r.get("sub_corridor") or ""),
                     "total_pop": int(r.get("total_pop") or 0),
                     "pct_uninsured": float(r.get("pct_uninsured") or 0.0),
                     "pct_poverty": float(r.get("pct_poverty") or r.get("pct_below_150pct_poverty") or 0.0),
@@ -135,8 +139,15 @@ def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
                         r.get("uninsured_adults_per_weekly_clinic_hr_1km") or 0.0
                     ),
                     "is_institutional_outlier": bool(r.get("is_institutional_outlier", False)),
+                    "is_flagged_anomaly": bool(r.get("is_flagged_anomaly", r.get("is_institutional_outlier", False))),
                     "outlier_category": str(r.get("outlier_category") or "ELIGIBLE_RESIDENTIAL"),
                     "outlier_rejection_reason": str(r.get("outlier_rejection_reason") or ""),
+                    "anomaly_reason": str(r.get("anomaly_reason") or r.get("outlier_rejection_reason") or ""),
+                    "score_hpsa_severity": float(r.get("score_hpsa_severity") or 0.0),
+                    "score_clinic_hours_bottleneck": float(r.get("score_clinic_hours_bottleneck") or 0.0),
+                    "score_uninsured_rate": float(r.get("score_uninsured_rate") or 0.0),
+                    "score_chronic_burden": float(r.get("score_chronic_burden") or 0.0),
+                    "score_transit_language": float(r.get("score_transit_language") or 0.0),
                     "composite_need_score": float(r.get("composite_need_score") or 0.0),
                 })
             bundle = {"county_fips": BRONX_FIPS, "tract_count": len(rows), "tracts": rows}
@@ -190,8 +201,10 @@ def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
                     "safety_net_weekly_hours_1km": 28.0,
                     "uninsured_adults_per_weekly_clinic_hr_1km": 35.0,
                     "is_institutional_outlier": is_outlier,
+                    "is_flagged_anomaly": is_outlier,
                     "outlier_category": "INSTITUTIONAL_OUTLIER" if is_outlier else "ELIGIBLE_RESIDENTIAL",
                     "outlier_rejection_reason": "Group quarters or low population outlier" if is_outlier else "",
+                    "anomaly_reason": "Group quarters or low population outlier" if is_outlier else "",
                     "composite_need_score": 0.0,
                 })
         except Exception:
@@ -245,30 +258,31 @@ def score_bronx_tracts(
     extra_kms = [t["extra_km_if_uninsured"] for t in raw_tracts]
 
     for t in raw_tracts:
-        # 1. HPSA Shortage Severity (25%)
-        hpsa_norm = _min_max_norm(t["hpsa_score"], min(hpsa_scores), max(hpsa_scores))
-        # 2. Uninsured & Preventative Gap (25%)
-        unins_norm = _min_max_norm(t["pct_uninsured"], min(unins_rates), max(unins_rates))
-        # 3. Chronic & Respiratory Burden (30%)
-        asthma_norm = _min_max_norm(t["pct_asthma"], min(asthma_rates), max(asthma_rates))
-        diab_norm = _min_max_norm(t["pct_diabetes"], min(diabetes_rates), max(diabetes_rates))
-        bp_norm = _min_max_norm(t["pct_high_bp"], min(high_bp_rates), max(high_bp_rates))
-        chronic_norm = (asthma_norm * 0.45) + (diab_norm * 0.35) + (bp_norm * 0.20)
-        # 4. Mobility / Language / SVI Barriers (20%)
-        no_veh_norm = _min_max_norm(t["pct_no_vehicle"], min(no_veh_rates), max(no_veh_rates))
-        lim_eng_norm = _min_max_norm(t["pct_limited_english"], min(lim_eng_rates), max(lim_eng_rates))
-        barrier_norm = (no_veh_norm * 0.60) + (lim_eng_norm * 0.40)
-        # 5. Distance Penalty = 0.00 in Bronx County (Trap 1)
-        dist_norm = _min_max_norm(t["extra_km_if_uninsured"], min(extra_kms), max(extra_kms))
+        if float(t.get("composite_need_score") or 0.0) <= 0.0:
+            # 1. HPSA Shortage Severity (25%)
+            hpsa_norm = _min_max_norm(t["hpsa_score"], min(hpsa_scores), max(hpsa_scores))
+            # 2. Uninsured & Preventative Gap (25%)
+            unins_norm = _min_max_norm(t["pct_uninsured"], min(unins_rates), max(unins_rates))
+            # 3. Chronic & Respiratory Burden (30%)
+            asthma_norm = _min_max_norm(t["pct_asthma"], min(asthma_rates), max(asthma_rates))
+            diab_norm = _min_max_norm(t["pct_diabetes"], min(diabetes_rates), max(diabetes_rates))
+            bp_norm = _min_max_norm(t["pct_high_bp"], min(high_bp_rates), max(high_bp_rates))
+            chronic_norm = (asthma_norm * 0.45) + (diab_norm * 0.35) + (bp_norm * 0.20)
+            # 4. Mobility / Language / SVI Barriers (20%)
+            no_veh_norm = _min_max_norm(t["pct_no_vehicle"], min(no_veh_rates), max(no_veh_rates))
+            lim_eng_norm = _min_max_norm(t["pct_limited_english"], min(lim_eng_rates), max(lim_eng_rates))
+            barrier_norm = (no_veh_norm * 0.60) + (lim_eng_norm * 0.40)
+            # 5. Distance Penalty = 0.00 in Bronx County (Trap 1)
+            dist_norm = _min_max_norm(t["extra_km_if_uninsured"], min(extra_kms), max(extra_kms))
 
-        score = (
-            (0.25 * hpsa_norm)
-            + (0.25 * unins_norm)
-            + (0.30 * chronic_norm)
-            + (0.20 * barrier_norm)
-            + (0.00 * dist_norm)
-        )
-        t["composite_need_score"] = round(score * 100.0, 2)
+            score = (
+                (0.25 * hpsa_norm)
+                + (0.25 * unins_norm)
+                + (0.30 * chronic_norm)
+                + (0.20 * barrier_norm)
+                + (0.00 * dist_norm)
+            )
+            t["composite_need_score"] = round(score * 100.0, 2)
 
     # Sort descending by need score
     raw_tracts.sort(key=lambda x: x["composite_need_score"], reverse=True)
@@ -338,16 +352,16 @@ def score_bronx_tracts(
         return {
             "geo_id": str(r["geo_id"]),
             "location_name": r.get("location_name") or f"Census Tract {str(r['geo_id'])[-6:]}, Bronx County, NY",
-            "neighborhood": landmark_ctx.get("neighborhood", r.get("location_name", "Bronx Community")),
+            "neighborhood": landmark_ctx.get("neighborhood", r.get("neighborhood") or r.get("location_name", "Bronx Community")),
             "hpsa_name": str(r.get("hpsa_name") or "ME HPSA Zone"),
             "hpsa_score": int(r.get("hpsa_score") or 17),
             "saturday_index": sat_idx,
             "saturday_date": s_date,
             "lat": float(r.get("lat") or 40.8448),
             "lon": float(r.get("lon") or -73.8648),
-            "landmark_name": landmark_ctx.get("landmark_name", "Community Transit Plaza"),
+            "landmark_name": landmark_ctx.get("landmark_name", r.get("landmark_name") or "Community Transit Plaza"),
             "landmark_es": landmark_ctx.get("landmark_es", landmark_ctx.get("landmark_name", "")),
-            "street_intersection": landmark_ctx.get("street_intersection", "Bronx, NY"),
+            "street_intersection": landmark_ctx.get("street_intersection", r.get("street_intersection") or "Bronx, NY"),
             "subway_lines": landmark_ctx.get("subway_lines", []),
             "bus_lines": landmark_ctx.get("bus_lines", []),
             "total_pop": int(r.get("total_pop") or 0),

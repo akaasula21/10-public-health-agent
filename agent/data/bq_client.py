@@ -14,10 +14,13 @@ from agent.config import (
     BQ_LOCATION,
     CLEAN_BOROUGH_CONTEXT_VIEW,
     CLEAN_CARE_SITES_VIEW,
+    CLEAN_COUNTY_CONTEXT_VIEW,
     CLEAN_EQUITY_AUDIT_VIEW,
+    CLEAN_TRACTS_GENERIC_VIEW,
     CLEAN_TRACTS_VIEW,
     COUNTY_FIPS,
     GCP_PROJECT_ID,
+    PILOT_COUNTY_FIPS,
     get_cache_paths,
     normalize_county_fips,
 )
@@ -61,11 +64,19 @@ def load_clean_tracts_df(
     paths = get_cache_paths(fips)
     if prefer_cache and paths["tracts_parquet"].exists():
         return pd.read_parquet(paths["tracts_parquet"])
-    df = run_query_df(
-        f"SELECT * FROM `{CLEAN_TRACTS_VIEW}` "
-        f"WHERE STARTS_WITH(CAST(geo_id AS STRING), '{fips}') "
-        f"ORDER BY geo_id"
-    )
+    view_name = CLEAN_TRACTS_VIEW if fips == PILOT_COUNTY_FIPS else CLEAN_TRACTS_GENERIC_VIEW
+    try:
+        df = run_query_df(
+            f"SELECT * FROM `{view_name}` "
+            f"WHERE STARTS_WITH(CAST(geo_id AS STRING), '{fips}') "
+            f"ORDER BY geo_id"
+        )
+    except Exception:
+        df = run_query_df(
+            f"SELECT * FROM `{CLEAN_TRACTS_VIEW}` "
+            f"WHERE STARTS_WITH(CAST(geo_id AS STRING), '{fips}') "
+            f"ORDER BY geo_id"
+        )
     paths["tracts_parquet"].parent.mkdir(parents=True, exist_ok=True)
     df.to_parquet(paths["tracts_parquet"], index=False)
     return df
@@ -114,7 +125,11 @@ def load_clean_county_context(
     paths = get_cache_paths(fips)
     if prefer_cache and paths["context_json"].exists():
         return json.loads(paths["context_json"].read_text(encoding="utf-8"))
-    df = run_query_df(f"SELECT * FROM `{CLEAN_BOROUGH_CONTEXT_VIEW}` LIMIT 1")
+    view_name = CLEAN_BOROUGH_CONTEXT_VIEW if fips == PILOT_COUNTY_FIPS else CLEAN_COUNTY_CONTEXT_VIEW
+    try:
+        df = run_query_df(f"SELECT * FROM `{view_name}` LIMIT 1")
+    except Exception:
+        df = run_query_df(f"SELECT * FROM `{CLEAN_BOROUGH_CONTEXT_VIEW}` LIMIT 1")
     record = df.iloc[0].to_dict() if not df.empty else {}
     paths["context_json"].parent.mkdir(parents=True, exist_ok=True)
     paths["context_json"].write_text(json.dumps(record, indent=2, default=str), encoding="utf-8")
@@ -135,6 +150,15 @@ def load_tracts_geojson(county_fips: str = COUNTY_FIPS) -> dict[str, Any]:
     paths = get_cache_paths(fips)
     if paths["tracts_geojson"].exists():
         return json.loads(paths["tracts_geojson"].read_text(encoding="utf-8"))
+    try:
+        from agent.data.cleaner import export_tracts_geojson
+
+        tracts_df = load_clean_tracts_df(prefer_cache=True, county_fips=fips)
+        export_tracts_geojson(tracts_df, county_fips=fips, output_path=paths["tracts_geojson"])
+        if paths["tracts_geojson"].exists():
+            return json.loads(paths["tracts_geojson"].read_text(encoding="utf-8"))
+    except Exception as exc:
+        logger.warning("Could not dynamically export GeoJSON for county %s: %s", fips, exc)
     raise FileNotFoundError(
         f"GeoJSON cache not found at {paths['tracts_geojson']}. "
         f"Run `python scripts/load_county_data.py --county-fips {fips}` or `python scripts/clean_bronx_data.py --county-fips {fips}` first."

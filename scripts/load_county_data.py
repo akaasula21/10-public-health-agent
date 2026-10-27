@@ -61,6 +61,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--county-fips",
         "-f",
+        "-c",
         default=COUNTY_FIPS,
         help=f"5-digit target county FIPS code (default: '{COUNTY_FIPS}', Bronx County NY pilot).",
     )
@@ -112,6 +113,11 @@ def parse_args() -> argparse.Namespace:
         help="Skip exporting local Parquet/JSON/GeoJSON caches in data/cache/.",
     )
     parser.add_argument(
+        "--skip-weather",
+        action="store_true",
+        help="Skip querying NOAA GSOD seasonal heat extremes during supplemental loading.",
+    )
+    parser.add_argument(
         "--list-counties",
         action="store_true",
         help="Print list of known Challenge 5 pre-staged and reference counties, then exit.",
@@ -155,6 +161,7 @@ def main() -> int:
             base_source=args.base_source,
             stage=args.stage,
             export_cache=not args.no_cache,
+            skip_weather=args.skip_weather,
         )
         print("\n" + "=" * 80)
         print("UNIFIED DATASET LOADER EXECUTION SUMMARY:")

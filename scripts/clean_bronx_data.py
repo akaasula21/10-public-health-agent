@@ -31,6 +31,7 @@ def main() -> None:
     parser.add_argument(
         "--county-fips",
         "-c",
+        "-f",
         default=PILOT_COUNTY_FIPS,
         help=f"5-digit county FIPS code (default: {PILOT_COUNTY_FIPS} for Bronx pilot).",
     )

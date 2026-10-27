@@ -251,18 +251,23 @@ class CountyDataLoader:
     """Unified dataset loader for any US county."""
 
     county_fips: str = PILOT_COUNTY_FIPS
-    project_id: str = GCP_PROJECT_ID
-    dataset: str = BQ_DATASET
-    audit_dataset: str = BQ_AUDIT_DATASET
+    project_id: str | None = GCP_PROJECT_ID
+    dataset: str | None = BQ_DATASET
+    audit_dataset: str | None = BQ_AUDIT_DATASET
     base_source: str = "auto"  # 'auto', 'gcs', or 'live'
     county_name: str | None = None
     state_abbr: str | None = None
+    skip_weather: bool = False
+    stage: str = "all"
 
     _config: CountyConfig = field(init=False)
     _client: bigquery.Client = field(init=False)
 
     def __post_init__(self) -> None:
         self.county_fips = normalize_county_fips(self.county_fips)
+        self.project_id = self.project_id or GCP_PROJECT_ID
+        self.dataset = self.dataset or BQ_DATASET
+        self.audit_dataset = self.audit_dataset or BQ_AUDIT_DATASET
         self._config = get_county_config(
             self.county_fips,
             county_name=self.county_name,
@@ -320,23 +325,53 @@ class CountyDataLoader:
             "disease_weekly",
             "tract_access",
         )
+        optional_shortage_schemas = {
+            "shortage_areas": HPSA_FIELDS,
+            "shortage_facilities": FAC_FIELDS,
+        }
         loaded = {}
         for tbl in base_tables:
-            uri = f"{GCS_CHALLENGE_BUCKET}/{self.county_fips}/{tbl}.parquet"
+            candidate_uris = (
+                f"{GCS_CHALLENGE_BUCKET}/{self.county_fips}/{tbl}/data.parquet",
+                f"{GCS_CHALLENGE_BUCKET}/{self.county_fips}/{tbl}.parquet",
+            )
             full_table = f"{self.project_id}.{self.dataset}.{tbl}"
             job_config = bigquery.LoadJobConfig(
                 source_format=bigquery.SourceFormat.PARQUET,
                 write_disposition="WRITE_TRUNCATE",
             )
-            try:
-                load_job = self._client.load_table_from_uri(uri, full_table, job_config=job_config)
-                load_job.result()
-                table = self._client.get_table(full_table)
-                loaded[tbl] = table.num_rows
-                logger.info("GCS snapshot loaded `%s`: %s rows", tbl, f"{table.num_rows:,}")
-            except Exception as e:
-                logger.warning("Could not load `%s` from GCS snapshot %s: %s", tbl, uri, e)
-                raise
+            last_err: Exception | None = None
+            success = False
+            for uri in candidate_uris:
+                try:
+                    load_job = self._client.load_table_from_uri(uri, full_table, job_config=job_config)
+                    load_job.result()
+                    table = self._client.get_table(full_table)
+                    loaded[tbl] = table.num_rows
+                    logger.info("GCS snapshot loaded `%s` from %s: %s rows", tbl, uri, f"{table.num_rows:,}")
+                    success = True
+                    break
+                except Exception as e:
+                    last_err = e
+
+            if not success:
+                if tbl in optional_shortage_schemas:
+                    cols = optional_shortage_schemas[tbl]
+                    logger.info(
+                        "Optional shortage table `%s` not present in GCS for county %s; creating empty typed table",
+                        tbl,
+                        self.county_fips,
+                    )
+                    empty_df = make_empty_shortage_df(cols)
+                    loaded[tbl] = self.upload_df(empty_df, tbl, schema=bq_schema_for_shortage(cols))
+                else:
+                    logger.warning(
+                        "Could not load `%s` from GCS snapshot (%s): %s",
+                        tbl,
+                        candidate_uris[0],
+                        last_err,
+                    )
+                    raise last_err  # type: ignore[misc]
         return loaded
 
     def load_base_from_live_apis(self) -> dict[str, int]:
@@ -643,64 +678,126 @@ class CountyDataLoader:
         }
         df_svi = socrata_fetch(SVI_2022_SOCRATA, svi_params)
 
+        # Pull ACS poverty, median income, and white non-Hispanic baseline for equity audit enrichment
+        acs_enrich_sql = f"""
+        SELECT geo_id,
+               ROUND(100.0 * SAFE_DIVIDE(white_nh, total_pop), 2) AS pct_white_nonhisp_est,
+               ROUND(100.0 * SAFE_DIVIDE(poverty_100, total_pop), 2) AS acs_pct_below_100pct_poverty,
+               CAST(median_income AS FLOAT64) AS acs_median_hh_income,
+               ROUND(100.0 * SAFE_DIVIDE(hispanic, total_pop), 2) AS acs_pct_hispanic,
+               ROUND(100.0 * SAFE_DIVIDE(black, total_pop), 2) AS acs_pct_black_nonhisp,
+               ROUND(100.0 * SAFE_DIVIDE(asian, total_pop), 2) AS acs_pct_asian_nonhisp,
+               ROUND(100.0 * SAFE_DIVIDE(minority, total_pop), 2) AS acs_pct_minority,
+               ROUND(100.0 * SAFE_DIVIDE(poverty_150, total_pop), 2) AS acs_pct_below_150pct_poverty,
+               ROUND(100.0 * SAFE_DIVIDE(group_q, total_pop), 2) AS acs_pct_group_quarters,
+               ROUND(100.0 * SAFE_DIVIDE(no_veh, total_households), 2) AS acs_pct_no_vehicle
+        FROM (
+          SELECT geo_id, total_pop,
+                 B03002_003 AS white_nh,
+                 B03002_012 AS hispanic,
+                 B03002_004 AS black,
+                 B03002_006 AS asian,
+                 total_pop - B03002_003 AS minority,
+                 B17001_002 AS poverty_100,
+                 B17024_002 + B17024_003 + B17024_004 AS poverty_150,
+                 B19013_001 AS median_income,
+                 B26001_001 AS group_q,
+                 B25044_003 + B25044_010 AS no_veh,
+                 B25044_001 AS total_households
+          FROM `bigquery-public-data.census_bureau_acs.censustract_2020_5yr`
+          WHERE geo_id LIKE '{cfg.county_fips}%'
+        )
+        """
+        try:
+            df_acs_enrich = self._client.query(acs_enrich_sql).to_dataframe()
+        except Exception as e:
+            logger.warning("BigQuery ACS enrichment query failed: %s", e)
+            df_acs_enrich = pd.DataFrame()
+
         # Fallback to BigQuery ACS if SVI Socrata returned empty
-        if df_svi.empty:
-            logger.info("SVI Socrata empty; pulling demographic baseline from BigQuery ACS...")
-            acs_svi_sql = f"""
-            SELECT geo_id,
-                   ROUND(100.0 * SAFE_DIVIDE(hispanic, total_pop), 2) AS pct_hispanic,
-                   ROUND(100.0 * SAFE_DIVIDE(black, total_pop), 2) AS pct_black_nonhisp,
-                   ROUND(100.0 * SAFE_DIVIDE(asian, total_pop), 2) AS pct_asian_nonhisp,
-                   ROUND(100.0 * SAFE_DIVIDE(minority, total_pop), 2) AS pct_minority,
-                   ROUND(100.0 * SAFE_DIVIDE(poverty_100, total_pop), 2) AS acs_pct_below_100pct_poverty,
-                   ROUND(100.0 * SAFE_DIVIDE(poverty_150, total_pop), 2) AS pct_below_150pct_poverty,
-                   median_income AS acs_median_hh_income,
-                   ROUND(100.0 * SAFE_DIVIDE(group_q, total_pop), 2) AS pct_group_quarters,
-                   ROUND(100.0 * SAFE_DIVIDE(no_veh, total_households), 2) AS pct_no_vehicle,
-                   0.50 AS svi_socioeconomic, 0.50 AS svi_household, 0.50 AS svi_housing_transport,
-                   10.0 AS pct_limited_english
-            FROM (
-              SELECT geo_id, total_pop,
-                     B03002_012 AS hispanic,
-                     B03002_004 AS black,
-                     B03002_006 AS asian,
-                     total_pop - B03002_003 AS minority,
-                     B17001_002 AS poverty_100,
-                     B17024_002 + B17024_003 + B17024_004 AS poverty_150,
-                     B19013_001 AS median_income,
-                     B26001_001 AS group_q,
-                     B25044_003 + B25044_010 AS no_veh,
-                     B25044_001 AS total_households
-              FROM `bigquery-public-data.census_bureau_acs.censustract_2020_5yr`
-              WHERE geo_id LIKE '{cfg.county_fips}%'
+        if df_svi.empty and not df_acs_enrich.empty:
+            logger.info("SVI Socrata empty; building SVI & demographic baseline from BigQuery ACS...")
+            df_svi = df_acs_enrich.rename(
+                columns={
+                    "acs_pct_hispanic": "pct_hispanic",
+                    "acs_pct_black_nonhisp": "pct_black_nonhisp",
+                    "acs_pct_asian_nonhisp": "pct_asian_nonhisp",
+                    "acs_pct_minority": "pct_minority",
+                    "acs_pct_below_150pct_poverty": "pct_below_150pct_poverty",
+                    "acs_pct_group_quarters": "pct_group_quarters",
+                    "acs_pct_no_vehicle": "pct_no_vehicle",
+                }
+            ).copy()
+            df_svi["svi_socioeconomic"] = 0.50
+            df_svi["svi_household"] = 0.50
+            df_svi["svi_housing_transport"] = 0.50
+            df_svi["pct_limited_english"] = 10.0
+        elif not df_svi.empty and not df_acs_enrich.empty:
+            df_svi = df_svi.merge(
+                df_acs_enrich[["geo_id", "pct_white_nonhisp_est", "acs_pct_below_100pct_poverty", "acs_median_hh_income"]],
+                on="geo_id",
+                how="left",
             )
-            """
-            try:
-                df_svi = self._client.query(acs_svi_sql).to_dataframe()
-            except Exception as e:
-                logger.warning("BigQuery ACS fallback failed: %s", e)
-                df_svi = pd.DataFrame()
 
         # Split into race-blind planner table vs isolated equity audit table
         if not df_svi.empty:
-            for num_col in [c for c in df_svi.columns if c != "geo_id"]:
+            for num_col in [c for c in df_svi.columns if c not in ("geo_id", "stcofips", "county", "state")]:
                 df_svi[num_col] = pd.to_numeric(df_svi[num_col], errors="coerce")
 
-            # Attach tract polygon geometry from BigQuery public boundaries
+            if "pct_white_nonhisp_est" not in df_svi.columns:
+                df_svi["pct_white_nonhisp_est"] = np.maximum(0.0, 100.0 - df_svi["pct_minority"].fillna(0.0))
+            else:
+                df_svi["pct_white_nonhisp_est"] = df_svi["pct_white_nonhisp_est"].fillna(
+                    np.maximum(0.0, 100.0 - df_svi["pct_minority"].fillna(0.0))
+                )
+            if "acs_pct_below_100pct_poverty" not in df_svi.columns:
+                df_svi["acs_pct_below_100pct_poverty"] = (df_svi["pct_below_150pct_poverty"].fillna(20.0) * 0.67).round(2)
+            if "acs_median_hh_income" not in df_svi.columns:
+                df_svi["acs_median_hh_income"] = 45000.0
+
+            # Upload race-blind SVI planner columns first, then attach tract polygon geometry
+            svi_planner_cols = [
+                c
+                for c in (
+                    "geo_id",
+                    "svi_socioeconomic",
+                    "svi_household",
+                    "svi_housing_transport",
+                    "pct_no_vehicle",
+                    "pct_group_quarters",
+                    "pct_limited_english",
+                )
+                if c in df_svi.columns
+            ]
+            self.upload_df(df_svi[svi_planner_cols].copy(), "svi_supplement_tracts")
+
             self._client.query(f"""
             CREATE OR REPLACE TABLE `{self.project_id}.{self.dataset}.svi_supplement_tracts` AS
             SELECT s.geo_id,
                    s.svi_socioeconomic, s.svi_household, s.svi_housing_transport,
                    s.pct_no_vehicle, s.pct_group_quarters, s.pct_limited_english,
                    c.tract_geom
-            FROM `{self.project_id}.{self.dataset}.burden_tracts` b
-            JOIN `bigquery-public-data.geo_us_boundaries.census_tracts` c
-              ON c.geo_id = b.geo_id
-            LEFT JOIN UNNEST([1]) ON TRUE
+            FROM `{self.project_id}.{self.dataset}.svi_supplement_tracts` s
+            LEFT JOIN `bigquery-public-data.geo_us_boundaries.census_tracts` c
+              ON c.geo_id = s.geo_id
             """).result()
 
             # Upload the equity audit table (Theme 3 demographics) into restricted audit dataset
-            audit_cols = [c for c in ("geo_id", "pct_minority", "pct_hispanic", "pct_black_nonhisp", "pct_asian_nonhisp", "pct_below_150pct_poverty", "acs_pct_below_100pct_poverty", "acs_median_hh_income") if c in df_svi.columns]
+            audit_cols = [
+                c
+                for c in (
+                    "geo_id",
+                    "pct_minority",
+                    "pct_hispanic",
+                    "pct_black_nonhisp",
+                    "pct_asian_nonhisp",
+                    "pct_white_nonhisp_est",
+                    "pct_below_150pct_poverty",
+                    "acs_pct_below_100pct_poverty",
+                    "acs_median_hh_income",
+                )
+                if c in df_svi.columns
+            ]
             df_audit = df_svi[audit_cols].copy()
             loaded["equity_audit_tracts"] = self.upload_df(
                 df_audit, "equity_audit_tracts", target_dataset=self.audit_dataset
@@ -841,44 +938,58 @@ class CountyDataLoader:
             loaded["climate_heat_risk_tracts"] = list(self._client.query(f"SELECT COUNT(*) FROM `{self.project_id}.{self.dataset}.climate_heat_risk_tracts`").result())[0][0]
 
         # 8. noaa_seasonal_heat (dynamic nearest NOAA weather stations)
-        logger.info("Computing NOAA GSOD weather stations for county %s...", cfg.county_fips)
-        stn_filter = ""
-        if self.is_pilot or cfg.noaa_station_ids:
-            stn_ids = cfg.noaa_station_ids or ("725030", "725053")
-            stn_list_str = ", ".join(f"'{s}'" for s in stn_ids)
-            stn_filter = f"AND s.usaf IN ({stn_list_str})"
+        if self.skip_weather:
+            logger.info("Skipping NOAA GSOD weather query (--skip-weather enabled)...")
+            fallback_noaa_sql = f"""
+            CREATE TABLE IF NOT EXISTS `{self.project_id}.{self.dataset}.noaa_seasonal_heat` AS
+            SELECT '000000' AS stn,
+                   '{cfg.county_name} Baseline Station' AS station_name,
+                   0.0 AS dist_km,
+                   84.0 AS summer_avg_max_temp_f,
+                   15 AS days_above_90f,
+                   96.0 AS peak_temp_f
+            """
+            self._client.query(fallback_noaa_sql).result()
+            loaded["noaa_seasonal_heat"] = list(self._client.query(f"SELECT COUNT(*) FROM `{self.project_id}.{self.dataset}.noaa_seasonal_heat`").result())[0][0]
         else:
-            stn_filter = f"AND ST_DWITHIN(ST_GEOGPOINT(s.lon, s.lat), ST_GEOGPOINT({cfg.centroid_lon}, {cfg.centroid_lat}), 75000)"
+            logger.info("Computing NOAA GSOD weather stations for county %s...", cfg.county_fips)
+            stn_filter = ""
+            if self.is_pilot or cfg.noaa_station_ids:
+                stn_ids = cfg.noaa_station_ids or ("725030", "725053")
+                stn_list_str = ", ".join(f"'{s}'" for s in stn_ids)
+                stn_filter = f"AND s.usaf IN ({stn_list_str})"
+            else:
+                stn_filter = f"AND ST_DWITHIN(ST_GEOGPOINT(s.lon, s.lat), ST_GEOGPOINT({cfg.centroid_lon}, {cfg.centroid_lat}), 75000)"
 
-        noaa_sql = f"""
-        CREATE OR REPLACE TABLE `{self.project_id}.{self.dataset}.noaa_seasonal_heat` AS
-        WITH target_stations AS (
-          SELECT s.usaf AS stn, s.name, s.lat, s.lon,
-                 ST_DISTANCE(ST_GEOGPOINT(s.lon, s.lat), ST_GEOGPOINT({cfg.centroid_lon}, {cfg.centroid_lat})) / 1000 AS dist_km
-          FROM `bigquery-public-data.noaa_gsod.stations` s
-          WHERE s.lat IS NOT NULL AND s.lon IS NOT NULL
-          {stn_filter}
-          ORDER BY dist_km ASC
-          LIMIT 3
-        ),
-        recent_weather AS (
-          SELECT w.stn, w.year, w.mo, w.da,
-                 CAST(w.temp AS FLOAT64) AS mean_temp_f,
-                 CAST(w.max AS FLOAT64) AS max_temp_f,
-                 CAST(w.min AS FLOAT64) AS min_temp_f
-          FROM `bigquery-public-data.noaa_gsod.gsod2023` w
-          JOIN target_stations s ON w.stn = s.stn
-        )
-        SELECT s.stn, s.name AS station_name, s.dist_km,
-               ROUND(AVG(w.max_temp_f), 1) AS summer_avg_max_temp_f,
-               COUNTIF(w.max_temp_f >= 90.0) AS days_above_90f,
-               MAX(w.max_temp_f) AS peak_temp_f
-        FROM target_stations s
-        LEFT JOIN recent_weather w ON s.stn = w.stn
-        GROUP BY 1, 2, 3
-        """
-        self._client.query(noaa_sql).result()
-        loaded["noaa_seasonal_heat"] = list(self._client.query(f"SELECT COUNT(*) FROM `{self.project_id}.{self.dataset}.noaa_seasonal_heat`").result())[0][0]
+            noaa_sql = f"""
+            CREATE OR REPLACE TABLE `{self.project_id}.{self.dataset}.noaa_seasonal_heat` AS
+            WITH target_stations AS (
+              SELECT s.usaf AS stn, s.name, s.lat, s.lon,
+                     ST_DISTANCE(ST_GEOGPOINT(s.lon, s.lat), ST_GEOGPOINT({cfg.centroid_lon}, {cfg.centroid_lat})) / 1000 AS dist_km
+              FROM `bigquery-public-data.noaa_gsod.stations` s
+              WHERE s.lat IS NOT NULL AND s.lon IS NOT NULL
+              {stn_filter}
+              ORDER BY dist_km ASC
+              LIMIT 3
+            ),
+            recent_weather AS (
+              SELECT w.stn, w.year, w.mo, w.da,
+                     CAST(w.temp AS FLOAT64) AS mean_temp_f,
+                     CAST(w.max AS FLOAT64) AS max_temp_f,
+                     CAST(w.min AS FLOAT64) AS min_temp_f
+              FROM `bigquery-public-data.noaa_gsod.gsod2023` w
+              JOIN target_stations s ON w.stn = s.stn
+            )
+            SELECT s.stn, s.name AS station_name, s.dist_km,
+                   ROUND(AVG(w.max_temp_f), 1) AS summer_avg_max_temp_f,
+                   COUNTIF(w.max_temp_f >= 90.0) AS days_above_90f,
+                   MAX(w.max_temp_f) AS peak_temp_f
+            FROM target_stations s
+            LEFT JOIN recent_weather w ON s.stn = w.stn
+            GROUP BY 1, 2, 3
+            """
+            self._client.query(noaa_sql).result()
+            loaded["noaa_seasonal_heat"] = list(self._client.query(f"SELECT COUNT(*) FROM `{self.project_id}.{self.dataset}.noaa_seasonal_heat`").result())[0][0]
 
         # 9. tract_access_enhanced (statewide access, 2km density & clean hours metrics)
         logger.info("Computing tract_access_enhanced with clean safety-net capacity...")
@@ -954,22 +1065,56 @@ class CountyDataLoader:
         planner_sql = f"""
         CREATE OR REPLACE TABLE `{self.project_id}.{self.dataset}.planner_tract_features` AS
         WITH neighbor_agg AS (
-          SELECT geo_id, ARRAY_AGG(neighbor_geo_id) AS bordering_tract_ids
+          SELECT geo_id, STRING_AGG(CAST(neighbor_geo_id AS STRING), ', ' ORDER BY neighbor_geo_id) AS bordering_tract_ids
           FROM `{self.project_id}.{self.dataset}.tract_neighbors`
           GROUP BY 1
         ),
+        hpsa_all_matched AS (
+          SELECT b.geo_id,
+                 h.DISCIPLINE_CLASS_DESC,
+                 CAST(h.HPSA_SCORE AS INT64) AS hpsa_score
+          FROM `{self.project_id}.{self.dataset}.burden_tracts` b
+          JOIN `{self.project_id}.{self.dataset}.shortage_areas_all_disciplines` h
+            ON (
+              CAST(h.GEO_ID AS STRING) = b.geo_id
+              OR (LENGTH(CAST(h.GEO_ID AS STRING)) = 9 AND SUBSTR(b.geo_id, 1, 9) = CAST(h.GEO_ID AS STRING))
+            )
+          WHERE h.HPSA_STATUS_DESC = 'Designated'
+        ),
+        hpsa_base_matched AS (
+          SELECT b.geo_id,
+                 CAST(h.HPSA_SCORE AS INT64) AS primary_care_hpsa_score
+          FROM `{self.project_id}.{self.dataset}.burden_tracts` b
+          JOIN `{self.project_id}.{self.dataset}.shortage_areas` h
+            ON (
+              CAST(h.GEO_ID AS STRING) = b.geo_id
+              OR (LENGTH(CAST(h.GEO_ID AS STRING)) = 9 AND SUBSTR(b.geo_id, 1, 9) = CAST(h.GEO_ID AS STRING))
+            )
+          WHERE h.HPSA_STATUS_DESC = 'Designated'
+        ),
         hpsa_agg AS (
-          SELECT CAST(GEO_ID AS STRING) AS geo_id,
-                 MAX(CAST(HPSA_SCORE AS INT64)) AS primary_care_hpsa_score
-          FROM `{self.project_id}.{self.dataset}.shortage_areas`
-          WHERE HPSA_STATUS_DESC = 'Designated'
+          SELECT b.geo_id,
+                 GREATEST(
+                   COALESCE(MAX(CASE WHEN ha.DISCIPLINE_CLASS_DESC = 'Primary Care' THEN ha.hpsa_score END), 0),
+                   COALESCE(MAX(hb.primary_care_hpsa_score), 0)
+                 ) AS primary_care_hpsa_score,
+                 COALESCE(MAX(CASE WHEN ha.DISCIPLINE_CLASS_DESC = 'Dental Health' THEN ha.hpsa_score END), 0) AS dental_hpsa_score,
+                 COALESCE(MAX(CASE WHEN ha.DISCIPLINE_CLASS_DESC = 'Mental Health' THEN ha.hpsa_score END), 0) AS mental_health_hpsa_score
+          FROM `{self.project_id}.{self.dataset}.burden_tracts` b
+          LEFT JOIN hpsa_all_matched ha ON ha.geo_id = b.geo_id
+          LEFT JOIN hpsa_base_matched hb ON hb.geo_id = b.geo_id
           GROUP BY 1
         ),
         mua_agg AS (
-          SELECT CAST(GEO_ID AS STRING) AS geo_id,
+          SELECT b.geo_id,
                  TRUE AS in_designated_mua
-          FROM `{self.project_id}.{self.dataset}.shortage_mua_tracts`
-          WHERE MUA_MUP_STATUS_DESC = 'Designated'
+          FROM `{self.project_id}.{self.dataset}.burden_tracts` b
+          JOIN `{self.project_id}.{self.dataset}.shortage_mua_tracts` m
+            ON (
+              CAST(m.GEO_ID AS STRING) = b.geo_id
+              OR (LENGTH(CAST(m.GEO_ID AS STRING)) = 9 AND SUBSTR(b.geo_id, 1, 9) = CAST(m.GEO_ID AS STRING))
+            )
+          WHERE m.MUA_MUP_STATUS_DESC = 'Designated'
           GROUP BY 1
         )
         SELECT b.geo_id,
@@ -1013,8 +1158,8 @@ class CountyDataLoader:
                COALESCE(CAST(b.total_pop AS FLOAT64), 0.0) AS daytime_pop_36005,
                14.0 AS pct_age_17_under,
                5000.0 AS pop_density_per_sq_km,
-               0 AS dental_hpsa_score,
-               0 AS mental_health_hpsa_score,
+               COALESCE(hpsa.dental_hpsa_score, 0) AS dental_hpsa_score,
+               COALESCE(hpsa.mental_health_hpsa_score, 0) AS mental_health_hpsa_score,
                COALESCE(acc.community_safety_net_sites_within_1km_clean, 0) AS safety_net_sites_within_1km,
                COALESCE(acc.community_safety_net_hours_within_1km_clean, 0.0) AS safety_net_weekly_hours_within_1km,
                COALESCE(acc.est_uninsured_per_clean_clinic_hr_1km, 50.0) AS est_uninsured_adults_per_weekly_clinic_hr_1km,
@@ -1064,6 +1209,8 @@ class CountyDataLoader:
             project_id=self.project_id,
             county_fips=self.county_fips,
             export_cache=export_cache,
+            dataset=self.dataset,
+            audit_dataset=self.audit_dataset,
         )
 
     def validate(self) -> dict[str, Any]:
@@ -1127,17 +1274,35 @@ class CountyDataLoader:
             "validation": val_res,
         }
 
+    def run(self, export_cache: bool = True) -> dict[str, Any]:
+        """Dispatch pipeline execution based on `self.stage`."""
+        if self.stage == "base":
+            loaded = self.load_base_tables()
+            return {"status": "SUCCESS", "county_fips": self.county_fips, "base_tables": loaded}
+        elif self.stage == "supplement":
+            loaded = self.load_supplemental_tables()
+            return {"status": "SUCCESS", "county_fips": self.county_fips, "supplemental_tables": loaded}
+        elif self.stage == "clean":
+            cleaned = self.clean_and_cache(export_cache=export_cache)
+            return {"status": "SUCCESS", "county_fips": self.county_fips, "clean_results": cleaned}
+        elif self.stage == "validate":
+            val = self.validate()
+            return {"status": "SUCCESS", "county_fips": self.county_fips, "validation": val}
+        else:
+            return self.run_full_pipeline(export_cache=export_cache)
+
 
 def run_unified_loader(
     county_fips: str = PILOT_COUNTY_FIPS,
     county_name: str | None = None,
     state_abbr: str | None = None,
-    project_id: str = GCP_PROJECT_ID,
-    dataset: str = BQ_DATASET,
-    audit_dataset: str = BQ_AUDIT_DATASET,
+    project_id: str | None = GCP_PROJECT_ID,
+    dataset: str | None = BQ_DATASET,
+    audit_dataset: str | None = BQ_AUDIT_DATASET,
     base_source: str = "auto",
     stage: str = "all",
     export_cache: bool = True,
+    skip_weather: bool = False,
 ) -> dict[str, Any]:
     """Top-level convenience function to invoke the unified county data loader."""
     loader = CountyDataLoader(
@@ -1148,19 +1313,7 @@ def run_unified_loader(
         base_source=base_source,
         county_name=county_name,
         state_abbr=state_abbr,
+        skip_weather=skip_weather,
+        stage=stage,
     )
-
-    if stage == "base":
-        loaded = loader.load_base_tables()
-        return {"status": "SUCCESS", "county_fips": loader.county_fips, "base_tables": loaded}
-    elif stage == "supplement":
-        loaded = loader.load_supplemental_tables()
-        return {"status": "SUCCESS", "county_fips": loader.county_fips, "supplemental_tables": loaded}
-    elif stage == "clean":
-        cleaned = loader.clean_and_cache(export_cache=export_cache)
-        return {"status": "SUCCESS", "county_fips": loader.county_fips, "clean_results": cleaned}
-    elif stage == "validate":
-        val = loader.validate()
-        return {"status": "SUCCESS", "county_fips": loader.county_fips, "validation": val}
-    else:
-        return loader.run_full_pipeline(export_cache=export_cache)
+    return loader.run(export_cache=export_cache)

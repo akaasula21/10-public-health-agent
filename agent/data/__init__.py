@@ -3,6 +3,8 @@
 from agent.data.loader import CountyDataLoader, run_unified_loader
 from agent.data.cleaner import (
     run_dataset_cleaner,
+    check_bq_data_cleaned,
+    ensure_data_loaded_and_cleaned,
     build_clean_tracts_sql,
     build_clean_care_sites_sql,
     build_clean_county_context_sql,
@@ -30,6 +32,8 @@ __all__ = [
     "CountyDataLoader",
     "run_unified_loader",
     "run_dataset_cleaner",
+    "check_bq_data_cleaned",
+    "ensure_data_loaded_and_cleaned",
     "build_clean_tracts_sql",
     "build_clean_care_sites_sql",
     "build_clean_county_context_sql",

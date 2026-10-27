@@ -42,9 +42,10 @@ logger = logging.getLogger(__name__)
 
 
 def build_clean_tracts_sql(
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
     view_name: str | None = None,
+    dataset: str | None = BQ_DATASET,
 ) -> str:
     """Return the BigQuery DDL to create the clean tracts view (`v_clean_tracts` / `v_clean_bronx_tracts`).
 
@@ -65,9 +66,11 @@ def build_clean_tracts_sql(
          zero designated HPSAs, dynamically incorporates `pr_distance_gap` (15%) and rebalances HPSA weight
          so 100% of the score remains active and discriminative.
     """
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     fips = normalize_county_fips(county_fips)
     cfg = get_county_config(fips)
-    target_view = view_name or f"{project_id}.{BQ_DATASET}.v_clean_bronx_tracts"
+    target_view = view_name or f"{proj}.{ds}.v_clean_bronx_tracts"
     short_label = cfg.short_name.replace("'", "\\'")
 
     return f"""
@@ -84,7 +87,7 @@ WITH hpsa_dedup AS (
             PARTITION BY CAST(GEO_ID AS STRING)
             ORDER BY HPSA_SCORE DESC, HPSA_NM ASC
         ) AS rn
-    FROM `{project_id}.{BQ_DATASET}.shortage_areas`
+    FROM `{proj}.{ds}.shortage_areas`
     WHERE HPSA_STATUS_DESC = 'Designated'
       AND LENGTH(CAST(GEO_ID AS STRING)) = 11
 ),
@@ -186,7 +189,7 @@ raw_sanitized AS (
         p.heatwave_risk_score,
         p.heatwave_risk_rating,
         p.bordering_tract_ids
-    FROM `{project_id}.{BQ_DATASET}.planner_tract_features` p
+    FROM `{proj}.{ds}.planner_tract_features` p
     LEFT JOIN hpsa_dedup h
       ON CAST(p.geo_id AS STRING) = h.geo_id AND h.rn = 1
     LEFT JOIN hpsa_stem_dedup hs
@@ -315,24 +318,30 @@ FROM percentile_ranks p
 """
 
 
-def build_clean_bronx_tracts_sql(project_id: str = GCP_PROJECT_ID) -> str:
+def build_clean_bronx_tracts_sql(project_id: str | None = GCP_PROJECT_ID, dataset: str | None = BQ_DATASET) -> str:
     """Backward-compatible wrapper returning the DDL for `v_clean_bronx_tracts`."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     return build_clean_tracts_sql(
-        project_id=project_id,
+        project_id=proj,
         county_fips=COUNTY_FIPS,
-        view_name=f"{project_id}.{BQ_DATASET}.v_clean_bronx_tracts",
+        view_name=f"{proj}.{ds}.v_clean_bronx_tracts",
+        dataset=ds,
     )
 
 
 def build_clean_care_sites_sql(
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
+    dataset: str | None = BQ_DATASET,
 ) -> str:
     """Return the BigQuery DDL to create `a4i_health.v_clean_care_sites`."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     cfg = get_county_config(county_fips)
     default_addr = f"{cfg.short_name}, {cfg.state_abbr}".replace("'", "\\'")
     return f"""
-CREATE OR REPLACE VIEW `{project_id}.{BQ_DATASET}.v_clean_care_sites` AS
+CREATE OR REPLACE VIEW `{proj}.{ds}.v_clean_care_sites` AS
 SELECT
     CONCAT(
         COALESCE(CAST(CMS_PROVIDER_NUM AS STRING), 'HRSA'),
@@ -367,23 +376,26 @@ SELECT
         WHEN TOT_OPER_HR_PER_WEEK < 35 THEN '#eab308'
         ELSE '#22c55e'
     END AS marker_color_hex
-FROM `{project_id}.{BQ_DATASET}.care_sites`
+FROM `{proj}.{ds}.care_sites`
 WHERE latitude IS NOT NULL AND longitude IS NOT NULL
 """
 
 
 def build_clean_county_context_sql(
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
     view_name: str | None = None,
+    dataset: str | None = BQ_DATASET,
 ) -> str:
     """Return the BigQuery DDL to create `v_clean_county_context` / `v_clean_borough_context`."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     fips = normalize_county_fips(county_fips)
     fips_int_str = str(int(fips))
     cfg = get_county_config(fips)
     escaped_name = cfg.county_name.replace("'", "\\'")
-    target_view = view_name or f"{project_id}.{BQ_DATASET}.v_clean_borough_context"
-    tracts_view = f"{project_id}.{BQ_DATASET}.v_clean_bronx_tracts"
+    target_view = view_name or f"{proj}.{ds}.v_clean_borough_context"
+    tracts_view = f"{proj}.{ds}.v_clean_tracts"
 
     return f"""
 CREATE OR REPLACE VIEW `{target_view}` AS
@@ -406,7 +418,7 @@ pm_stats AS (
         ROUND(MAX(mean_pm), 2) AS pm25_annual_max_ug_m3,
         ROUND(MAX(max_pm), 1) AS pm25_peak_daily_spike_ug_m3,
         MAX(days_over_35) AS max_days_over_35_ug_m3
-    FROM `{project_id}.{BQ_DATASET}.exposure_tracts`
+    FROM `{proj}.{ds}.exposure_tracts`
     WHERE STARTS_WITH(LPAD(CAST(geo_id AS STRING), 11, '0'), '{fips}')
 ),
 ed_stats AS (
@@ -415,7 +427,7 @@ ed_stats AS (
         COUNT(percent_visits_covid) AS nssp_non_null_covid_weeks,
         COUNT(percent_visits_influenza) AS nssp_non_null_flu_weeks,
         COUNT(percent_visits_rsv) AS nssp_non_null_rsv_weeks
-    FROM `{project_id}.{BQ_DATASET}.disease_weekly`
+    FROM `{proj}.{ds}.disease_weekly`
     WHERE CAST(fips AS STRING) IN ('{fips}', '{fips_int_str}')
 )
 SELECT
@@ -437,28 +449,36 @@ CROSS JOIN ed_stats e
 """
 
 
-def build_clean_borough_context_sql(project_id: str = GCP_PROJECT_ID) -> str:
+def build_clean_borough_context_sql(project_id: str | None = GCP_PROJECT_ID, dataset: str | None = BQ_DATASET) -> str:
     """Backward-compatible wrapper returning the DDL for `v_clean_borough_context`."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     return build_clean_county_context_sql(
-        project_id=project_id,
+        project_id=proj,
         county_fips=COUNTY_FIPS,
-        view_name=f"{project_id}.{BQ_DATASET}.v_clean_borough_context",
+        view_name=f"{proj}.{ds}.v_clean_borough_context",
+        dataset=ds,
     )
 
 
 def build_clean_equity_audit_sql(
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
+    dataset: str | None = BQ_DATASET,
+    audit_dataset: str | None = BQ_AUDIT_DATASET,
 ) -> str:
     """Return the BigQuery DDL to create `a4i_health_audit.v_clean_equity_audit` (Trap 5 Isolated Audit View)."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
+    ads = audit_dataset or BQ_AUDIT_DATASET
     fips = normalize_county_fips(county_fips)
     return f"""
-CREATE OR REPLACE VIEW `{project_id}.{BQ_AUDIT_DATASET}.v_clean_equity_audit` AS
+CREATE OR REPLACE VIEW `{proj}.{ads}.v_clean_equity_audit` AS
 WITH clean_tracts AS (
     SELECT
-        CAST(b.geo_id AS STRING) AS geo_id,
-        CAST(b.total_pop AS INT64) AS total_pop,
-        (b.pct_group_quarters > {MAX_GROUP_QUARTERS_PCT} OR b.total_pop < {MIN_RESIDENTIAL_POPULATION}) AS is_institutional_outlier,
+        CAST(p.geo_id AS STRING) AS geo_id,
+        CAST(p.total_pop AS INT64) AS total_pop,
+        (COALESCE(p.pct_group_quarters, 0.0) > {MAX_GROUP_QUARTERS_PCT} OR p.total_pop < {MIN_RESIDENTIAL_POPULATION}) AS is_institutional_outlier,
         ROUND(IF(e.pct_hispanic < 0, NULL, e.pct_hispanic), 2) AS pct_hispanic,
         ROUND(IF(e.pct_black_nonhisp < 0, NULL, e.pct_black_nonhisp), 2) AS pct_black,
         ROUND(IF(e.pct_black_nonhisp < 0, NULL, e.pct_black_nonhisp), 2) AS pct_black_nonhisp,
@@ -473,11 +493,11 @@ WITH clean_tracts AS (
         ROUND(IF(e.pct_below_150pct_poverty < 0, NULL, e.pct_below_150pct_poverty), 2) AS pct_below_150pct_poverty,
         ROUND(IF(e.acs_pct_below_100pct_poverty < 0, NULL, e.acs_pct_below_100pct_poverty), 2) AS pct_poverty,
         ROUND(IF(e.acs_median_hh_income < 0, NULL, e.acs_median_hh_income), 0) AS acs_median_hh_income
-    FROM `{project_id}.{BQ_DATASET}.burden_tracts` b
-    INNER JOIN `{project_id}.{BQ_AUDIT_DATASET}.equity_audit_tracts` e
-      ON CAST(b.geo_id AS STRING) = CAST(e.geo_id AS STRING)
-    WHERE STARTS_WITH(CAST(b.geo_id AS STRING), '{fips}')
-      AND b.total_pop > 0
+    FROM `{proj}.{ds}.planner_tract_features` p
+    INNER JOIN `{proj}.{ads}.equity_audit_tracts` e
+      ON CAST(p.geo_id AS STRING) = CAST(e.geo_id AS STRING)
+    WHERE STARTS_WITH(CAST(p.geo_id AS STRING), '{fips}')
+      AND p.total_pop > 0
 ),
 borough_baseline AS (
     SELECT
@@ -533,22 +553,25 @@ def enrich_tracts_with_landmarks(
 
 def export_tracts_geojson(
     tracts_df: pd.DataFrame,
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
+    dataset: str | None = BQ_DATASET,
 ) -> dict[str, Any]:
     """Query 2020 polygon geometries from `svi_supplement_tracts` (with US Census boundary fallback) and write GeoJSON cache."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
     fips = normalize_county_fips(county_fips)
     paths = get_cache_paths(fips)
     sql = f"""
     SELECT
         CAST(geo_id AS STRING) AS geo_id,
         ST_AsGeoJSON(ST_Simplify(tract_geom, 15.0)) AS geometry_json
-    FROM `{project_id}.{BQ_DATASET}.svi_supplement_tracts`
+    FROM `{proj}.{ds}.svi_supplement_tracts`
     WHERE STARTS_WITH(CAST(geo_id AS STRING), '{fips}')
       AND tract_geom IS NOT NULL
     """
     try:
-        geom_df = run_query_df(sql)
+        geom_df = run_query_df(sql, project_id=proj)
     except Exception:
         geom_df = pd.DataFrame()
 
@@ -562,7 +585,7 @@ def export_tracts_geojson(
           AND county_fips_code = '{fips[2:]}'
           AND tract_geom IS NOT NULL
         """
-        geom_df = run_query_df(fallback_sql)
+        geom_df = run_query_df(fallback_sql, project_id=proj)
 
     geom_map = {str(r["geo_id"]): json.loads(r["geometry_json"]) for _, r in geom_df.iterrows()}
 
@@ -601,50 +624,55 @@ def export_tracts_geojson(
     return fc
 
 
-def export_bronx_tracts_geojson(tracts_df: pd.DataFrame, project_id: str = GCP_PROJECT_ID) -> dict[str, Any]:
+def export_bronx_tracts_geojson(tracts_df: pd.DataFrame, project_id: str | None = GCP_PROJECT_ID) -> dict[str, Any]:
     """Backward-compatible alias for `export_tracts_geojson`."""
     return export_tracts_geojson(tracts_df=tracts_df, project_id=project_id, county_fips=COUNTY_FIPS)
 
 
 def run_dataset_cleaner(
-    project_id: str = GCP_PROJECT_ID,
+    project_id: str | None = GCP_PROJECT_ID,
     county_fips: str = COUNTY_FIPS,
+    dataset: str | None = BQ_DATASET,
+    audit_dataset: str | None = BQ_AUDIT_DATASET,
     export_cache: bool = True,
 ) -> dict[str, Any]:
     """Execute the Dataset Cleaner pipeline in BigQuery for `county_fips` and export local caches."""
+    proj = project_id or GCP_PROJECT_ID
+    ds = dataset or BQ_DATASET
+    ads = audit_dataset or BQ_AUDIT_DATASET
     fips = normalize_county_fips(county_fips)
     cfg = get_county_config(fips)
     paths = get_cache_paths(fips)
-    client = get_bq_client(project_id)
+    client = get_bq_client(proj)
 
-    tracts_view_bronx = f"{project_id}.{BQ_DATASET}.v_clean_bronx_tracts"
-    tracts_alias_bronx_2020 = f"{project_id}.{BQ_DATASET}.bronx_tracts_2020"
-    tracts_view_generic = f"{project_id}.{BQ_DATASET}.v_clean_tracts"
-    care_sites_view = f"{project_id}.{BQ_DATASET}.v_clean_care_sites"
-    context_view_borough = f"{project_id}.{BQ_DATASET}.v_clean_borough_context"
-    context_view_generic = f"{project_id}.{BQ_DATASET}.v_clean_county_context"
-    equity_audit_view = f"{project_id}.{BQ_AUDIT_DATASET}.v_clean_equity_audit"
+    tracts_view_bronx = f"{proj}.{ds}.v_clean_bronx_tracts"
+    tracts_alias_bronx_2020 = f"{proj}.{ds}.bronx_tracts_2020"
+    tracts_view_generic = f"{proj}.{ds}.v_clean_tracts"
+    care_sites_view = f"{proj}.{ds}.v_clean_care_sites"
+    context_view_borough = f"{proj}.{ds}.v_clean_borough_context"
+    context_view_generic = f"{proj}.{ds}.v_clean_county_context"
+    equity_audit_view = f"{proj}.{ads}.v_clean_equity_audit"
 
     # 1. Materialize both county-agnostic and backward-compatible BigQuery views
     views_ddl = {
-        tracts_view_bronx: build_clean_tracts_sql(project_id, fips, view_name=tracts_view_bronx),
+        tracts_view_bronx: build_clean_tracts_sql(proj, fips, view_name=tracts_view_bronx, dataset=ds),
         tracts_alias_bronx_2020: f"CREATE OR REPLACE VIEW `{tracts_alias_bronx_2020}` AS SELECT * FROM `{tracts_view_bronx}`",
-        tracts_view_generic: build_clean_tracts_sql(project_id, fips, view_name=tracts_view_generic),
-        care_sites_view: build_clean_care_sites_sql(project_id, fips),
-        context_view_borough: build_clean_county_context_sql(project_id, fips, view_name=context_view_borough),
-        context_view_generic: build_clean_county_context_sql(project_id, fips, view_name=context_view_generic),
-        equity_audit_view: build_clean_equity_audit_sql(project_id, fips),
+        tracts_view_generic: build_clean_tracts_sql(proj, fips, view_name=tracts_view_generic, dataset=ds),
+        care_sites_view: build_clean_care_sites_sql(proj, fips, dataset=ds),
+        context_view_borough: build_clean_county_context_sql(proj, fips, view_name=context_view_borough, dataset=ds),
+        context_view_generic: build_clean_county_context_sql(proj, fips, view_name=context_view_generic, dataset=ds),
+        equity_audit_view: build_clean_equity_audit_sql(proj, fips, dataset=ds, audit_dataset=ads),
     }
     for view_name, ddl in views_ddl.items():
         logger.info("Materializing BigQuery view: %s (county=%s)", view_name, fips)
         client.query(ddl).result()
 
     # 2. Fetch and enrich cleaned DataFrames and export local Parquet/JSON/GeoJSON caches
-    tracts_df = run_query_df(f"SELECT * FROM `{tracts_view_generic}` ORDER BY composite_need_score DESC")
+    tracts_df = run_query_df(f"SELECT * FROM `{tracts_view_generic}` ORDER BY composite_need_score DESC", project_id=proj)
     tracts_df = enrich_tracts_with_landmarks(tracts_df, county_fips=fips)
-    care_sites_df = run_query_df(f"SELECT * FROM `{care_sites_view}` ORDER BY site_id")
-    equity_df = run_query_df(f"SELECT * FROM `{equity_audit_view}` ORDER BY geo_id")
-    context_df = run_query_df(f"SELECT * FROM `{context_view_generic}` LIMIT 1")
+    care_sites_df = run_query_df(f"SELECT * FROM `{care_sites_view}` ORDER BY site_id", project_id=proj)
+    equity_df = run_query_df(f"SELECT * FROM `{equity_audit_view}` ORDER BY geo_id", project_id=proj)
+    context_df = run_query_df(f"SELECT * FROM `{context_view_generic}` LIMIT 1", project_id=proj)
     context_dict = context_df.iloc[0].to_dict() if not context_df.empty else {}
 
     geojson_fc: dict[str, Any] = {"type": "FeatureCollection", "features": []}
@@ -667,7 +695,7 @@ def run_dataset_cleaner(
         if paths["context_county_json"] != paths["context_json"]:
             paths["context_county_json"].write_text(context_json_str, encoding="utf-8")
 
-        geojson_fc = export_tracts_geojson(tracts_df, project_id=project_id, county_fips=fips)
+        geojson_fc = export_tracts_geojson(tracts_df, project_id=proj, county_fips=fips, dataset=ds)
 
     eligible_df = tracts_df[~tracts_df["is_institutional_outlier"]]
     outliers_df = tracts_df[tracts_df["is_institutional_outlier"]]
@@ -688,3 +716,231 @@ def run_dataset_cleaner(
         "county_context": context_dict,
         "borough_context": context_dict,
     }
+
+
+def check_bq_data_cleaned(
+    project_id: str = GCP_PROJECT_ID,
+    county_fips: str = COUNTY_FIPS,
+    dataset: str | None = None,
+    audit_dataset: str | None = None,
+) -> dict[str, Any]:
+    """Verify whether BigQuery cleaned views exist, are populated, and have clean caches."""
+    fips = normalize_county_fips(county_fips)
+    ds = dataset or BQ_DATASET
+    ads = audit_dataset or BQ_AUDIT_DATASET
+    paths = get_cache_paths(fips)
+
+    tracts_view = f"{project_id}.{ds}.v_clean_bronx_tracts" if fips == PILOT_COUNTY_FIPS else f"{project_id}.{ds}.v_clean_tracts"
+    care_sites_view = f"{project_id}.{ds}.v_clean_care_sites"
+    equity_view = f"{project_id}.{ads}.v_clean_equity_audit"
+
+    cache_files_exist = (
+        paths["tracts_parquet"].exists()
+        and paths["care_sites_parquet"].exists()
+        and paths["equity_audit_parquet"].exists()
+        and paths["context_json"].exists()
+        and paths["tracts_geojson"].exists()
+    )
+
+    try:
+        tract_check_sql = f"""
+        SELECT
+            COUNT(*) AS total_tracts,
+            COUNTIF(is_institutional_outlier) AS institutional_outliers,
+            COUNTIF(
+                pct_uninsured < 0 OR pct_asthma < 0 OR pct_diabetes < 0 OR
+                pct_high_bp < 0 OR pct_no_vehicle < 0 OR pct_limited_english < 0 OR
+                pct_group_quarters < 0 OR composite_need_score IS NULL
+            ) AS sentinels_or_nulls
+        FROM `{tracts_view}`
+        WHERE STARTS_WITH(geo_id, '{fips}')
+        """
+        tract_res = run_query_df(tract_check_sql)
+        if tract_res.empty:
+            return {
+                "is_cleaned": False,
+                "bq_views_exist": False,
+                "cache_files_exist": cache_files_exist,
+                "tract_count": 0,
+                "care_sites_count": 0,
+                "equity_audit_count": 0,
+                "institutional_outliers_count": 0,
+                "sentinels_found": 0,
+                "county_fips": fips,
+                "project_id": project_id,
+                "dataset": ds,
+                "audit_dataset": ads,
+                "details": "Clean tracts view returned no rows",
+            }
+
+        row = tract_res.iloc[0]
+        total_tracts = int(row["total_tracts"])
+        outliers = int(row["institutional_outliers"])
+        sentinels = int(row["sentinels_or_nulls"])
+
+        care_check_sql = f"SELECT COUNT(*) AS total_care_sites FROM `{care_sites_view}`"
+        care_res = run_query_df(care_check_sql)
+        care_sites_count = int(care_res.iloc[0]["total_care_sites"]) if not care_res.empty else 0
+
+        equity_check_sql = f"SELECT COUNT(*) AS total_equity_tracts FROM `{equity_view}` WHERE STARTS_WITH(geo_id, '{fips}')"
+        equity_res = run_query_df(equity_check_sql)
+        equity_count = int(equity_res.iloc[0]["total_equity_tracts"]) if not equity_res.empty else 0
+
+        expected_tracts_ok = (total_tracts == 347) if fips == PILOT_COUNTY_FIPS else (total_tracts > 0)
+        expected_outliers_ok = (outliers == 11) if fips == PILOT_COUNTY_FIPS else True
+        is_cleaned = bool(
+            expected_tracts_ok
+            and sentinels == 0
+            and care_sites_count > 0
+            and equity_count > 0
+            and expected_outliers_ok
+        )
+
+        return {
+            "is_cleaned": is_cleaned,
+            "bq_views_exist": True,
+            "cache_files_exist": cache_files_exist,
+            "tract_count": total_tracts,
+            "care_sites_count": care_sites_count,
+            "equity_audit_count": equity_count,
+            "institutional_outliers_count": outliers,
+            "sentinels_found": sentinels,
+            "county_fips": fips,
+            "project_id": project_id,
+            "dataset": ds,
+            "audit_dataset": ads,
+            "details": "BigQuery views verified" if is_cleaned else f"Incomplete validation (tracts={total_tracts}, sentinels={sentinels}, care_sites={care_sites_count}, equity={equity_count})",
+        }
+    except Exception as exc:
+        logger.warning("BigQuery cleaned data check encountered error: %s", exc)
+        return {
+            "is_cleaned": False,
+            "bq_views_exist": False,
+            "cache_files_exist": cache_files_exist,
+            "tract_count": 0,
+            "care_sites_count": 0,
+            "equity_audit_count": 0,
+            "institutional_outliers_count": 0,
+            "sentinels_found": 0,
+            "county_fips": fips,
+            "project_id": project_id,
+            "dataset": ds,
+            "audit_dataset": ads,
+            "details": f"BigQuery check failed: {exc}",
+        }
+
+
+def ensure_data_loaded_and_cleaned(
+    project_id: str = GCP_PROJECT_ID,
+    county_fips: str = COUNTY_FIPS,
+    dataset: str | None = None,
+    audit_dataset: str | None = None,
+    export_cache: bool = True,
+    seed_db: bool = True,
+    force: bool = False,
+) -> dict[str, Any]:
+    """Ensure BigQuery public health data is loaded, cleaned, and cached on startup."""
+    fips = normalize_county_fips(county_fips)
+    ds = dataset or BQ_DATASET
+    ads = audit_dataset or BQ_AUDIT_DATASET
+    paths = get_cache_paths(fips)
+
+    logger.info("Ensuring data loaded and cleaned for county %s (project=%s, dataset=%s, force=%s)", fips, project_id, ds, force)
+
+    if not force:
+        status = check_bq_data_cleaned(
+            project_id=project_id,
+            county_fips=fips,
+            dataset=ds,
+            audit_dataset=ads,
+        )
+        if status["is_cleaned"]:
+            # If local cache files are missing in fresh container, export them
+            if export_cache and not status["cache_files_exist"]:
+                logger.info("BigQuery views clean, but local cache files missing. Exporting caches...")
+                clean_tracts_view = f"{project_id}.{ds}.v_clean_bronx_tracts" if fips == PILOT_COUNTY_FIPS else f"{project_id}.{ds}.v_clean_tracts"
+                care_sites_view = f"{project_id}.{ds}.v_clean_care_sites"
+                equity_view = f"{project_id}.{ads}.v_clean_equity_audit"
+                context_view = f"{project_id}.{ds}.v_clean_county_context"
+
+                tracts_df = run_query_df(f"SELECT * FROM `{clean_tracts_view}` ORDER BY composite_need_score DESC")
+                tracts_df = enrich_tracts_with_landmarks(tracts_df, county_fips=fips)
+                care_sites_df = run_query_df(f"SELECT * FROM `{care_sites_view}` ORDER BY site_id")
+                equity_df = run_query_df(f"SELECT * FROM `{equity_view}` ORDER BY geo_id")
+                context_df = run_query_df(f"SELECT * FROM `{context_view}` LIMIT 1")
+                context_dict = context_df.iloc[0].to_dict() if not context_df.empty else {}
+
+                paths["tracts_parquet"].parent.mkdir(parents=True, exist_ok=True)
+                tracts_df.to_parquet(paths["tracts_parquet"], index=False)
+                if paths["tracts_county_parquet"] != paths["tracts_parquet"]:
+                    tracts_df.to_parquet(paths["tracts_county_parquet"], index=False)
+
+                care_sites_df.to_parquet(paths["care_sites_parquet"], index=False)
+                if paths["care_sites_county_parquet"] != paths["care_sites_parquet"]:
+                    care_sites_df.to_parquet(paths["care_sites_county_parquet"], index=False)
+
+                equity_df.to_parquet(paths["equity_audit_parquet"], index=False)
+                if paths["equity_audit_county_parquet"] != paths["equity_audit_parquet"]:
+                    equity_df.to_parquet(paths["equity_audit_county_parquet"], index=False)
+
+                context_json_str = json.dumps(context_dict, indent=2, default=str)
+                paths["context_json"].write_text(context_json_str, encoding="utf-8")
+                if paths["context_county_json"] != paths["context_json"]:
+                    paths["context_county_json"].write_text(context_json_str, encoding="utf-8")
+
+                export_tracts_geojson(tracts_df, project_id=project_id, county_fips=fips, dataset=ds)
+                status["cache_files_exist"] = True
+
+            # If seed_db, ensure DB schedule is seeded
+            if seed_db:
+                try:
+                    from agent.db.seeder import ensure_seeded_schedule
+                    ensure_seeded_schedule()
+                except Exception as exc:
+                    logger.warning("Database seeding during startup check deferred: %s", exc)
+
+            return {
+                "action": "SKIPPED_ALREADY_CLEAN",
+                "fast_path": True,
+                "county_fips": fips,
+                "status": status,
+            }
+
+    # Data is not clean or force=True
+    logger.info("Data not fully cleaned or force=True. Verifying base tables...")
+    client = get_bq_client(project_id)
+    try:
+        client.get_table(f"{project_id}.{ds}.planner_tract_features")
+    except Exception:
+        logger.info("Base table %s.planner_tract_features missing. Running CountyDataLoader...", ds)
+        from agent.data.loader import CountyDataLoader
+        loader = CountyDataLoader(
+            project_id=project_id,
+            county_fips=fips,
+            dataset=ds,
+            audit_dataset=ads,
+        )
+        loader.run_full_pipeline()
+
+    clean_summary = run_dataset_cleaner(
+        project_id=project_id,
+        county_fips=fips,
+        dataset=ds,
+        audit_dataset=ads,
+        export_cache=export_cache,
+    )
+
+    if seed_db:
+        try:
+            from agent.db.seeder import ensure_seeded_schedule
+            ensure_seeded_schedule(force_reseed=True)
+        except Exception as exc:
+            logger.warning("Database seeding during startup clean deferred: %s", exc)
+
+    return {
+        "action": "LOADED_AND_CLEANED_ON_STARTUP",
+        "fast_path": False,
+        "county_fips": fips,
+        "clean_summary": clean_summary,
+    }
+
