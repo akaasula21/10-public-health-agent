@@ -1,0 +1,50 @@
+[
+  {
+    "facility_name": "BRONX COMMUNITY HEALTH NETWORK, INC.",
+    "hpsa_score": 16,
+    "lat": 40.86077,
+    "lon": -73.89011
+  },
+  {
+    "facility_name": "MORRIS HEIGHTS HEALTH CENTER INC",
+    "hpsa_score": 17,
+    "lat": 40.8547,
+    "lon": -73.91035
+  },
+  {
+    "facility_name": "BRONXCARE HEALTH INTEGRATED SERVICES SYSTEM INC.",
+    "hpsa_score": 18,
+    "lat": 40.84362,
+    "lon": -73.91026
+  },
+  {
+    "facility_name": "UNION COMMUNITY HEALTH CENTER, INC.",
+    "hpsa_score": 18,
+    "lat": 40.86075,
+    "lon": -73.89594
+  },
+  {
+    "facility_name": "LA CASA DE SALUD INC",
+    "hpsa_score": 18,
+    "lat": 40.82292,
+    "lon": -73.90006
+  },
+  {
+    "facility_name": "VOCATIONAL INSTRUCTION PROJECT COMMUNITY SERVICES, INC.",
+    "hpsa_score": 18,
+    "lat": 40.84227,
+    "lon": -73.89007
+  },
+  {
+    "facility_name": "URBAN HEALTH PLAN, INC",
+    "hpsa_score": 19,
+    "lat": 40.82505,
+    "lon": -73.89213
+  },
+  {
+    "facility_name": "MONTEFIORE MEDICAL CENTER",
+    "hpsa_score": 19,
+    "lat": 40.87987,
+    "lon": -73.8799
+  }
+]
