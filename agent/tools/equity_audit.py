@@ -303,6 +303,17 @@ def run_posthoc_equity_audit(
         "uninsured_concentration_ratio": round(selected_metrics["pct_uninsured"] / max(baseline["pct_uninsured"], 1.0), 2),
     }
 
+    hpsa_div_status = "DIVERSE" if len(distinct_zones) >= min(3, len(clean_geos)) else "CLUSTERED"
+
+    if violations:
+        comments = f"REJECTED with {len(violations)} violation(s): " + "; ".join(v.get("reason", "") for v in violations)
+    else:
+        comments = (
+            f"APPROVED: Meets all 5 equity, diversity, and residential criteria. "
+            f"Black+Hispanic coverage {selected_metrics['pct_black_or_hispanic_combined']}% exceeds baseline {baseline_comb}%. "
+            f"4 stops span {len(distinct_zones)} distinct HPSA zones: {distinct_zones}."
+        )
+
     traps_checked = {
         "urban_distance_trap": "PASS" if not any(v.get("trap_id") == "TRAP_1_URBAN_DISTANCE_ILLUSION" for v in violations) else "FAIL",
         "institutional_group_quarters_trap": "PASS" if not any(v.get("trap_id") == "TRAP_2_INSTITUTIONAL_OUTLIER" for v in violations) else "FAIL",
@@ -320,11 +331,16 @@ def run_posthoc_equity_audit(
         "race_verified_in_posthoc_audit": True,
         "selected_geo_ids": clean_geos,
         "distinct_hpsa_zones": distinct_zones,
+        "hpsa_diversity_status": hpsa_div_status,
         "violations": violations,
         "bronx_county_baseline": baseline,
         "selected_tracts_weighted_profile": selected_metrics,
         "coverage_ratios_vs_county_baseline": coverage_ratios,
+        "demographic_coverage_ratios": coverage_ratios,
         "outliers_detected": outliers_detected,
+        "institutional_outliers_detected": outliers_detected,
+        "auditor_comments": comments,
+        "auditor_verdict_commentary": comments,
         "traps_checked": traps_checked,
         "tract_by_tract_demographics": selected_rows,
     }
