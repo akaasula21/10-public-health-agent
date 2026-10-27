@@ -26,3 +26,7 @@ Thumbs.db
 # ADK runtime
 .adk/
 *.db
+
+# Story slide deck content and pitch deck exports
+story/SLIDE_DECK_CONTENT.md
+story/*.pdf
