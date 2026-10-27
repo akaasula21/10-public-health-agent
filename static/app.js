@@ -47,17 +47,18 @@ function switchTab(tabId) {
     btn.classList.add('border-transparent', 'text-slate-600');
   });
 
-  const target = document.getElementById('tab-' + tabId);
+  const normalized = tabId.replace('-tab', '');
+  const target = document.getElementById('tab-' + tabId) || document.getElementById('tab-' + normalized + '-tab');
   if (target) target.classList.add('active');
 
-  const activeBtn = document.getElementById('nav-' + tabId);
+  const activeBtn = document.getElementById('nav-' + tabId) || document.getElementById('nav-' + normalized + '-tab');
   if (activeBtn) {
     activeBtn.classList.remove('border-transparent', 'text-slate-600');
     activeBtn.classList.add('border-emerald-500', 'text-emerald-700', 'bg-emerald-50/60');
   }
 
-  if (tabId === 'map-tab') {
-    initOrRefreshMap();
+  if (tabId === 'map-tab' || tabId === 'map' || normalized === 'map') {
+    setTimeout(initOrRefreshMap, 60);
   }
 }
 
@@ -185,18 +186,40 @@ function renderSaturdayCards() {
       const aqiStr = wf.aqi_pm25 ? `AQI ${wf.aqi_pm25}` : 'Good Air';
       const rainStr = wf.precipitation_risk || 'Low Rain Risk';
 
-      const kits = stop.clinical_kits || {};
-      const kitsHtml = Object.entries(kits)
-        .map(([k, v]) => {
-          const label = k
-            .replace(/_/g, ' ')
-            .replace(/\b\w/g, (c) => c.toUpperCase());
-          return `<div class="bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-200 flex justify-between items-center text-xs">
-            <span class="text-slate-600 font-medium">${label}</span>
-            <span class="font-bold text-emerald-700 ml-2">${v}</span>
-          </div>`;
-        })
-        .join('');
+      // Fix Stock Display: Handle Array of Kit Objects vs Object Dict
+      const kits = stop.clinical_kits || [];
+      let kitsHtml = '';
+      if (Array.isArray(kits)) {
+        kitsHtml = kits
+          .map((item) => {
+            const name = item.kit_name || item.kit_code || 'Clinical Kit';
+            const qty = item.quantity != null ? `${item.quantity} units` : '';
+            const reason = item.trigger_reason || '';
+            return `<div class="bg-slate-50 hover:bg-emerald-50/50 transition rounded-lg p-2 border border-slate-200 text-xs flex flex-col justify-between" title="${reason}">
+              <div class="flex items-start justify-between gap-1.5">
+                <span class="text-slate-800 font-semibold leading-tight">${name}</span>
+                ${qty ? `<span class="font-bold text-emerald-800 bg-emerald-100/90 border border-emerald-300 px-1.5 py-0.5 rounded text-[11px] whitespace-nowrap">${qty}</span>` : ''}
+              </div>
+              ${reason ? `<div class="text-[10px] text-slate-500 mt-1 line-clamp-1 italic">${reason}</div>` : ''}
+            </div>`;
+          })
+          .join('');
+      } else if (typeof kits === 'object' && kits !== null) {
+        kitsHtml = Object.entries(kits)
+          .map(([k, v]) => {
+            const label = k.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+            const valStr = typeof v === 'object' && v !== null
+              ? (v.quantity != null ? `${v.quantity} units` : v.kit_name || JSON.stringify(v))
+              : String(v);
+            return `<div class="bg-slate-50 rounded-lg px-2.5 py-1.5 border border-slate-200 flex justify-between items-center text-xs">
+              <span class="text-slate-700 font-medium">${label}</span>
+              <span class="font-bold text-emerald-700 ml-2">${valStr}</span>
+            </div>`;
+          })
+          .join('');
+      }
+
+      const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.street_intersection || (stop.lat + ',' + stop.lon))}`;
 
       return `
       <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex flex-col justify-between hover:shadow-md transition">
@@ -269,7 +292,7 @@ function renderSaturdayCards() {
             <!-- Onboard Medical Kits -->
             <div>
               <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider mb-1.5">Onboard Medical Supplies</div>
-              <div class="grid grid-cols-2 gap-1.5">${kitsHtml}</div>
+              <div class="grid grid-cols-1 gap-1.5">${kitsHtml}</div>
             </div>
           </div>
         </div>
@@ -281,8 +304,11 @@ function renderSaturdayCards() {
               <i class="fa-solid fa-print text-teal-600"></i> Print Flyer
             </button>
             <button onclick="focusStopOnMap(${stop.lat}, ${stop.lon})" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
-              <i class="fa-solid fa-map-pin text-emerald-600"></i> View on Map
+              <i class="fa-solid fa-map-pin text-emerald-600"></i> View Map
             </button>
+            <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="text-xs bg-white hover:bg-slate-100 text-slate-700 border border-slate-300 font-semibold px-2.5 py-1.5 rounded-lg transition flex items-center gap-1">
+              <i class="fa-solid fa-arrow-up-right-from-square text-sky-600"></i> Google Maps
+            </a>
           </div>
           <button onclick="openReplanStopModal('${stop.id}', ${stop.saturday_index}, '${stop.neighborhood.replace(/'/g, "\\'")}')" class="text-xs bg-amber-50 hover:bg-amber-100 text-amber-900 border border-amber-300 font-semibold px-3 py-1.5 rounded-lg transition flex items-center gap-1.5">
             <i class="fa-solid fa-route"></i> Relocate Stop
@@ -365,19 +391,44 @@ function copyText(elementId, label = 'Text') {
 
 // Tab 2: Interactive Care Desert Map
 async function initOrRefreshMap() {
-  if (!mapInstance) {
-    mapInstance = L.map('map').setView([40.8448, -73.8648], 12);
-    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
-      attribution: '&copy; OpenStreetMap &copy; CARTO',
-    }).addTo(mapInstance);
+  const mapEl = document.getElementById('map');
+  if (!mapEl) return;
 
-    mapLayerGroups.tracts = L.layerGroup().addTo(mapInstance);
-    mapLayerGroups.clinics = L.layerGroup().addTo(mapInstance);
-    mapLayerGroups.outliers = L.layerGroup().addTo(mapInstance);
-    mapLayerGroups.stops = L.layerGroup().addTo(mapInstance);
+  if (typeof L === 'undefined') {
+    console.warn('Leaflet (L) is not loaded yet. Retrying in 200ms...');
+    setTimeout(initOrRefreshMap, 200);
+    return;
   }
 
-  setTimeout(() => mapInstance.invalidateSize(), 150);
+  if (!mapInstance) {
+    try {
+      if (mapEl._leaflet_id) {
+        mapEl._leaflet_id = null;
+      }
+      mapInstance = L.map('map', {
+        zoomControl: true,
+        scrollWheelZoom: true,
+      }).setView([40.8448, -73.8648], 12);
+
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+        attribution: '&copy; OpenStreetMap &copy; CARTO',
+        subdomains: 'abcd',
+        maxZoom: 19,
+      }).addTo(mapInstance);
+
+      mapLayerGroups.tracts = L.layerGroup().addTo(mapInstance);
+      mapLayerGroups.clinics = L.layerGroup().addTo(mapInstance);
+      mapLayerGroups.outliers = L.layerGroup().addTo(mapInstance);
+      mapLayerGroups.stops = L.layerGroup().addTo(mapInstance);
+    } catch (err) {
+      console.error('Error initializing Leaflet map:', err);
+    }
+  }
+
+  // Force Leaflet recalculation across tab animation frames
+  setTimeout(() => mapInstance && mapInstance.invalidateSize(), 80);
+  setTimeout(() => mapInstance && mapInstance.invalidateSize(), 250);
+  setTimeout(() => mapInstance && mapInstance.invalidateSize(), 600);
 
   if (!mapGeoData) {
     try {
@@ -399,9 +450,9 @@ function plotMapMarkers() {
   // 1. Plot 347 Census Tracts (High-Need Care Deserts)
   if (mapGeoData && mapGeoData.tracts) {
     mapGeoData.tracts.forEach((t) => {
-      const lat = t.latitude || t.lat;
-      const lon = t.longitude || t.lon;
-      if (!lat || !lon) return;
+      const lat = Number(t.latitude != null ? t.latitude : t.lat);
+      const lon = Number(t.longitude != null ? t.longitude : t.lon);
+      if (isNaN(lat) || isNaN(lon)) return;
       const asthma = Number(t.pct_asthma || 0);
       const uninsured = Number(t.pct_uninsured || 0);
       const isHighBurden = asthma >= 15.5 || uninsured >= 18.0;
@@ -426,14 +477,15 @@ function plotMapMarkers() {
     });
   }
 
-  // 2. Plot 252 Brick-and-Mortar Care Sites (Handles uppercase LAT/LON from care_sites.json)
+  // 2. Plot 252 Brick-and-Mortar Care Sites (Handles uppercase & lowercase keys)
   if (mapGeoData && mapGeoData.care_sites) {
     mapGeoData.care_sites.forEach((c) => {
-      const lat = c.LAT || c.lat;
-      const lon = c.LON || c.lon;
-      if (!lat || !lon) return;
-      const name = c.SITE_NAME || c.site_name || 'Community Clinic';
-      const hrs = Number(c.TOT_OPER_HR_PER_WEEK || c.tot_oper_hr_per_week || 0);
+      const lat = Number(c.lat != null ? c.lat : c.LAT);
+      const lon = Number(c.lon != null ? c.lon : c.LON);
+      if (isNaN(lat) || isNaN(lon)) return;
+      const name = c.site_name || c.SITE_NAME || 'Community Clinic';
+      const addr = c.site_address || c.SITE_ADDRESS || '';
+      const hrs = Number(c.oper_hours_per_week != null ? c.oper_hours_per_week : (c.TOT_OPER_HR_PER_WEEK != null ? c.TOT_OPER_HR_PER_WEEK : c.tot_oper_hr_per_week || 40));
       const isLimited = hrs < 40;
 
       L.circleMarker([lat, lon], {
@@ -446,7 +498,7 @@ function plotMapMarkers() {
         .bindPopup(
           `<div class="text-xs space-y-1">
             <div class="font-bold text-slate-900">${name}</div>
-            <div>Address: ${c.SITE_ADDRESS || ''}</div>
+            <div>Address: ${addr}</div>
             <div>Weekly Operating Hours: <b>${hrs} hrs/wk</b></div>
             <div class="text-amber-700 font-semibold">${
               isLimited ? 'Limited Weekday Hours (Closed Saturdays)' : 'Standard Fixed Clinic'
@@ -481,6 +533,10 @@ function plotMapMarkers() {
   // 4. Plot 4 Active Saturday Mobile Van Stops
   const stops = (currentSchedule && currentSchedule.stops) || [];
   stops.forEach((s) => {
+    const lat = Number(s.lat);
+    const lon = Number(s.lon);
+    if (isNaN(lat) || isNaN(lon)) return;
+
     const icon = L.divIcon({
       className: 'custom-stop-pin',
       html: `<div style="background:#059669;color:white;width:32px;height:32px;border-radius:9999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;border:3px solid white;box-shadow:0 4px 10px rgba(0,0,0,0.35);">S${s.saturday_index}</div>`,
@@ -488,13 +544,20 @@ function plotMapMarkers() {
       iconAnchor: [16, 16],
     });
 
-    const marker = L.marker([s.lat, s.lon], { icon })
+    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.street_intersection || (lat + ',' + lon))}`;
+
+    const marker = L.marker([lat, lon], { icon })
       .bindPopup(
         `<div class="text-xs space-y-1.5">
           <div class="font-bold text-emerald-800 text-sm">Saturday ${s.saturday_index}: ${s.neighborhood}</div>
           <div class="font-semibold text-slate-800">${s.landmark_name}</div>
           <div class="text-slate-600">${s.street_intersection}</div>
           <div class="bg-emerald-50 p-2 rounded border border-emerald-200 text-slate-700">${s.siting_rationale}</div>
+          <div class="pt-1">
+            <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="text-emerald-700 font-bold hover:underline inline-flex items-center gap-1">
+              <i class="fa-solid fa-arrow-up-right-from-square"></i> Open in Google Maps
+            </a>
+          </div>
         </div>`
       )
       .addTo(mapLayerGroups.stops);
@@ -521,13 +584,17 @@ function focusStopOnMap(lat, lon) {
   setTimeout(() => {
     if (mapInstance) {
       mapInstance.setView([lat, lon], 15);
+      mapInstance.invalidateSize();
     }
-  }, 250);
+  }, 200);
 }
 
 function renderMapStopInspector(stop) {
   const el = document.getElementById('map-stop-inspector');
   if (!el || !stop) return;
+  const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.street_intersection || (stop.lat + ',' + stop.lon))}`;
+  const earthUrl = `https://earth.google.com/web/search/${encodeURIComponent(stop.street_intersection || stop.landmark_name)}`;
+
   el.innerHTML = `
     <div class="space-y-3">
       <div class="flex items-center justify-between">
@@ -548,8 +615,16 @@ function renderMapStopInspector(stop) {
         <div><div class="text-slate-500">Asthma</div><div class="font-bold text-amber-700">${Number(stop.pct_asthma).toFixed(1)}%</div></div>
         <div><div class="text-slate-500">Diabetes</div><div class="font-bold text-rose-700">${Number(stop.pct_diabetes).toFixed(1)}%</div></div>
       </div>
+      <div class="flex items-center gap-2 pt-1">
+        <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-center text-xs py-2 rounded-lg transition inline-flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-map-location-dot text-emerald-600"></i> Google Maps
+        </a>
+        <a href="${earthUrl}" target="_blank" rel="noopener noreferrer" class="flex-1 bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 font-semibold text-center text-xs py-2 rounded-lg transition inline-flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-earth-americas text-sky-600"></i> Earth 3D
+        </a>
+      </div>
       <button onclick="openFlyerForStop(${stop.saturday_index})" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold text-xs py-2 rounded-lg transition">
-        <i class="fa-solid fa-bullhorn mr-1"></i> Open Community Flyer for Saturday ${stop.saturday_index}
+        <i class="fa-solid fa-bullhorn mr-1"></i> Open Bilingual Flyer Studio
       </button>
     </div>
   `;
