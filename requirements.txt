@@ -8,3 +8,6 @@ requests>=2.32.0
 python-dotenv>=1.0.1
 db-dtypes>=1.2.0
 pandas>=2.2.0
+sqlalchemy>=2.0.0
+cloud-sql-python-connector>=1.20.0
+pg8000>=1.31.0
