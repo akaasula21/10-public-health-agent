@@ -511,7 +511,8 @@ def run_director_bigquery_sql(sql_query: str) -> dict[str, Any]:
 
     # Fallback to local query engine if available
     try:
-        df = run_query_df(cleaned)
+        fallback_query = re.sub(r"\bbronx_tracts_2020\b", "v_clean_bronx_tracts", cleaned, flags=re.IGNORECASE)
+        df = run_query_df(fallback_query)
         records = df.head(50).to_dict(orient="records")
         return {"row_count": len(df), "rows": json.loads(json.dumps(records, default=str))}
     except Exception as exc:

@@ -618,6 +618,7 @@ def run_dataset_cleaner(
     client = get_bq_client(project_id)
 
     tracts_view_bronx = f"{project_id}.{BQ_DATASET}.v_clean_bronx_tracts"
+    tracts_alias_bronx_2020 = f"{project_id}.{BQ_DATASET}.bronx_tracts_2020"
     tracts_view_generic = f"{project_id}.{BQ_DATASET}.v_clean_tracts"
     care_sites_view = f"{project_id}.{BQ_DATASET}.v_clean_care_sites"
     context_view_borough = f"{project_id}.{BQ_DATASET}.v_clean_borough_context"
@@ -627,6 +628,7 @@ def run_dataset_cleaner(
     # 1. Materialize both county-agnostic and backward-compatible BigQuery views
     views_ddl = {
         tracts_view_bronx: build_clean_tracts_sql(project_id, fips, view_name=tracts_view_bronx),
+        tracts_alias_bronx_2020: f"CREATE OR REPLACE VIEW `{tracts_alias_bronx_2020}` AS SELECT * FROM `{tracts_view_bronx}`",
         tracts_view_generic: build_clean_tracts_sql(project_id, fips, view_name=tracts_view_generic),
         care_sites_view: build_clean_care_sites_sql(project_id, fips),
         context_view_borough: build_clean_county_context_sql(project_id, fips, view_name=context_view_borough),
