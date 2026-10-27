@@ -259,6 +259,11 @@ def approve_and_exit_audit_loop(tool_context: Any, summary: str = "Schedule meet
         tool_context: The ADK ToolContext injected by the runner.
         summary: Clear justification explaining why the schedule is approved.
     """
+    if hasattr(tool_context, "state") and tool_context.state is not None:
+        try:
+            tool_context.state["audit_verdict"] = summary
+        except Exception:
+            pass
     if hasattr(tool_context, "actions") and tool_context.actions is not None:
         tool_context.actions.escalate = True
     return {
