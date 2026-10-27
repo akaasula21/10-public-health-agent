@@ -4,7 +4,16 @@ let currentSchedule = null;
 let allSchedules = [];
 let selectedFlyerSatIndex = 1;
 let mapInstance = null;
+let googleMapInstance = null;
+let googleInfoWindow = null;
+let isGoogleMaps = false;
 let mapGeoData = null;
+let googleMapLayers = {
+  stops: [],
+  clinics: [],
+  tracts: [],
+  outliers: [],
+};
 let mapLayerGroups = {
   stops: null,
   clinics: null,
@@ -59,6 +68,13 @@ function switchTab(tabId) {
 
   if (tabId === 'map-tab' || tabId === 'map' || normalized === 'map') {
     setTimeout(initOrRefreshMap, 60);
+    setTimeout(() => {
+      if (isGoogleMaps && googleMapInstance && window.google && window.google.maps) {
+        google.maps.event.trigger(googleMapInstance, 'resize');
+      } else if (mapInstance && typeof mapInstance.invalidateSize === 'function') {
+        mapInstance.invalidateSize();
+      }
+    }, 180);
   }
 }
 
@@ -127,7 +143,9 @@ function renderAllViews() {
   renderSaturdayCards();
   renderFlyerStudio();
   renderGovernanceAudit();
-  if (mapInstance) {
+  if (isGoogleMaps && googleMapInstance) {
+    plotGoogleMapMarkers();
+  } else if (mapInstance) {
     plotMapMarkers();
   }
 }
@@ -389,17 +407,348 @@ function copyText(elementId, label = 'Text') {
   showToast(`${label} copied to clipboard!`);
 }
 
-// Tab 2: Interactive Care Desert Map
+// Tab 2: Interactive Care Desert Map (Google Maps Primary with Leaflet Fallback)
+
+// Global callback triggered if Google Maps API finishes loading
+window.onGoogleMapsInit = function () {
+  console.log('Google Maps API script initialized.');
+  const badge = document.getElementById('map-engine-badge');
+  if (badge) {
+    badge.innerHTML = `<i class="fa-solid fa-map-location-dot text-emerald-600"></i> Google Maps Active`;
+  }
+  const target = document.getElementById('tab-map-tab');
+  if (target && target.classList.contains('active')) {
+    initOrRefreshMap();
+  }
+};
+
 async function initOrRefreshMap() {
   const mapEl = document.getElementById('map');
   if (!mapEl) return;
 
-  if (typeof L === 'undefined') {
-    console.warn('Leaflet (L) is not loaded yet. Retrying in 200ms...');
-    setTimeout(initOrRefreshMap, 200);
+  if (!mapGeoData) {
+    try {
+      const res = await fetch('/api/geo/data');
+      if (res.ok) {
+        mapGeoData = await res.json();
+      }
+    } catch (err) {
+      console.error('Error loading map geo data:', err);
+    }
+  }
+
+  // Primary: Google Maps JavaScript API
+  if (window.google && window.google.maps && window.google.maps.Map) {
+    initGoogleMaps(mapEl);
     return;
   }
 
+  // Secondary fallback: Leaflet
+  if (typeof L !== 'undefined') {
+    initLeafletMaps(mapEl);
+    return;
+  }
+
+  console.warn('Map engine not ready yet. Retrying in 200ms...');
+  setTimeout(initOrRefreshMap, 200);
+}
+
+function initGoogleMaps(mapEl) {
+  isGoogleMaps = true;
+  const bronxCenter = { lat: 40.8448, lng: -73.8648 };
+
+  if (!googleMapInstance) {
+    // Reset any Leaflet internal state if container previously used Leaflet
+    if (mapEl._leaflet_id) {
+      mapEl._leaflet_id = null;
+      mapEl.innerHTML = '';
+    }
+
+    googleMapInstance = new google.maps.Map(mapEl, {
+      center: bronxCenter,
+      zoom: 12,
+      mapTypeId: 'roadmap',
+      mapTypeControl: true,
+      mapTypeControlOptions: {
+        style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+        position: google.maps.ControlPosition.TOP_RIGHT,
+      },
+      streetViewControl: true,
+      fullscreenControl: true,
+      zoomControl: true,
+      gestureHandling: 'cooperative',
+      styles: [
+        { featureType: 'poi.medical', elementType: 'geometry', stylers: [{ color: '#dbeafe' }] },
+        { featureType: 'transit.station', elementType: 'labels.icon', stylers: [{ visibility: 'on' }] },
+      ],
+    });
+
+    googleInfoWindow = new google.maps.InfoWindow({
+      maxWidth: 340,
+    });
+
+    google.maps.event.addListener(googleMapInstance, 'click', () => {
+      if (googleInfoWindow) googleInfoWindow.close();
+    });
+
+    const badge = document.getElementById('map-engine-badge');
+    if (badge) {
+      badge.innerHTML = `<i class="fa-solid fa-map-location-dot text-emerald-600"></i> Google Maps Active`;
+      badge.className = 'inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200';
+    }
+  }
+
+  setTimeout(() => {
+    if (googleMapInstance) {
+      google.maps.event.trigger(googleMapInstance, 'resize');
+    }
+  }, 100);
+  setTimeout(() => {
+    if (googleMapInstance) {
+      google.maps.event.trigger(googleMapInstance, 'resize');
+    }
+  }, 300);
+
+  plotGoogleMapMarkers();
+}
+
+function plotGoogleMapMarkers() {
+  if (!googleMapInstance) return;
+
+  // Clear existing markers/circles
+  Object.values(googleMapLayers).forEach((arr) => {
+    arr.forEach((m) => {
+      if (m && m.setMap) m.setMap(null);
+    });
+  });
+  googleMapLayers = {
+    stops: [],
+    clinics: [],
+    tracts: [],
+    outliers: [],
+  };
+
+  // 1. Plot 347 Census Tracts (High-Need Care Deserts)
+  if (mapGeoData && mapGeoData.tracts) {
+    mapGeoData.tracts.forEach((t) => {
+      const lat = Number(t.latitude != null ? t.latitude : t.lat);
+      const lon = Number(t.longitude != null ? t.longitude : t.lon);
+      if (isNaN(lat) || isNaN(lon)) return;
+      const asthma = Number(t.pct_asthma || 0);
+      const uninsured = Number(t.pct_uninsured || 0);
+      const isHighBurden = asthma >= 15.5 || uninsured >= 18.0;
+      const color = isHighBurden ? '#f59e0b' : '#94a3b8';
+
+      const circle = new google.maps.Circle({
+        map: googleMapInstance,
+        center: { lat, lng: lon },
+        radius: isHighBurden ? 210 : 150,
+        fillColor: color,
+        fillOpacity: isHighBurden ? 0.45 : 0.2,
+        strokeColor: color,
+        strokeWeight: 1,
+        clickable: true,
+        zIndex: 5,
+      });
+
+      circle.addListener('click', (ev) => {
+        googleInfoWindow.setContent(`
+          <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.45;padding:4px;">
+            <div style="font-weight:bold;color:#0f172a;font-size:13px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;">
+              Census Tract Zone ${t.geo_id}
+            </div>
+            <div>Residents: <b>${(t.total_pop || 0).toLocaleString()}</b></div>
+            <div>Asthma Rate: <b style="color:#b45309;">${asthma.toFixed(1)}%</b></div>
+            <div>Uninsured Rate: <b style="color:#0f766e;">${uninsured.toFixed(1)}%</b></div>
+            <div>Diabetes Rate: <b>${Number(t.pct_diabetes || 0).toFixed(1)}%</b></div>
+            <div style="margin-top:6px;font-size:11px;color:${isHighBurden ? '#b45309' : '#64748b'};font-weight:600;">
+              ${isHighBurden ? '⚠️ High Chronic Disease & Coverage Burden' : 'Standard Baseline Need'}
+            </div>
+          </div>
+        `);
+        googleInfoWindow.setPosition(ev.latLng || { lat, lng: lon });
+        googleInfoWindow.open(googleMapInstance);
+      });
+
+      googleMapLayers.tracts.push(circle);
+    });
+  }
+
+  // 2. Plot 252 Fixed Clinics (Operating Hours Gap)
+  if (mapGeoData && mapGeoData.care_sites) {
+    mapGeoData.care_sites.forEach((c) => {
+      const lat = Number(c.lat != null ? c.lat : c.LAT);
+      const lon = Number(c.lon != null ? c.lon : c.LON);
+      if (isNaN(lat) || isNaN(lon)) return;
+      const name = c.site_name || c.SITE_NAME || 'Community Clinic';
+      const addr = c.site_address || c.SITE_ADDRESS || '';
+      const hrs = Number(c.oper_hours_per_week != null ? c.oper_hours_per_week : (c.TOT_OPER_HR_PER_WEEK != null ? c.TOT_OPER_HR_PER_WEEK : c.tot_oper_hr_per_week || 40));
+      const isLimited = hrs < 40;
+
+      const marker = new google.maps.Marker({
+        position: { lat, lng: lon },
+        map: googleMapInstance,
+        title: name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: isLimited ? 5.5 : 4.5,
+          fillColor: isLimited ? '#eab308' : '#0284c7',
+          fillOpacity: 0.9,
+          strokeColor: '#ffffff',
+          strokeWeight: 1.5,
+        },
+        zIndex: 10,
+      });
+
+      marker.addListener('click', () => {
+        googleInfoWindow.setContent(`
+          <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.45;padding:4px;">
+            <div style="font-weight:bold;color:#0f172a;font-size:13px;border-bottom:1px solid #e2e8f0;padding-bottom:4px;margin-bottom:6px;">
+              ${name}
+            </div>
+            <div style="color:#475569;margin-bottom:4px;">${addr}</div>
+            <div>Weekly Operating Hours: <b>${hrs} hrs/wk</b></div>
+            <div style="margin-top:6px;font-size:11px;font-weight:bold;padding:4px 8px;border-radius:6px;background:${isLimited ? '#fef3c7;color:#92400e;' : '#e0f2fe;color:#0369a1;'}">
+              ${isLimited ? '⚠️ Closed Saturdays (<40 hrs/wk) — Mobile Van Gap' : '✓ Full-Time Fixed Primary Care Clinic'}
+            </div>
+          </div>
+        `);
+        googleInfoWindow.open(googleMapInstance, marker);
+      });
+
+      googleMapLayers.clinics.push(marker);
+    });
+  }
+
+  // 3. Plot Institutional Outliers (Trap 2: Rikers Island & Bronx Psych Center)
+  if (mapGeoData && mapGeoData.institutional_outliers) {
+    mapGeoData.institutional_outliers.forEach((o) => {
+      const circle = new google.maps.Circle({
+        map: googleMapInstance,
+        center: { lat: o.lat, lng: o.lon },
+        radius: 650,
+        fillColor: '#ef4444',
+        fillOpacity: 0.35,
+        strokeColor: '#991b1b',
+        strokeWeight: 2,
+        clickable: true,
+        zIndex: 15,
+      });
+
+      const marker = new google.maps.Marker({
+        position: { lat: o.lat, lng: o.lon },
+        map: googleMapInstance,
+        title: o.name,
+        icon: {
+          path: google.maps.SymbolPath.CIRCLE,
+          scale: 9,
+          fillColor: '#ef4444',
+          fillOpacity: 1.0,
+          strokeColor: '#ffffff',
+          strokeWeight: 2,
+        },
+        zIndex: 25,
+      });
+
+      const showOutlierInfo = () => {
+        googleInfoWindow.setContent(`
+          <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.45;padding:4px;">
+            <div style="font-weight:bold;color:#991b1b;font-size:13px;border-bottom:1px solid #fee2e2;padding-bottom:4px;margin-bottom:6px;">
+              <i class="fa-solid fa-triangle-exclamation" style="margin-right:4px;"></i> Excluded Facility: ${o.name}
+            </div>
+            <div>Group Quarters Pop: <b>${o.pct_group_quarters}%</b></div>
+            <div style="margin-top:6px;padding:6px;background:#fee2e2;color:#991b1b;border-radius:6px;font-size:11px;line-height:1.35;border:1px solid #fca5a5;">
+              <b>Trap 2 Siting Guardrail:</b> ${o.rejection_reason}
+            </div>
+          </div>
+        `);
+        googleInfoWindow.open(googleMapInstance, marker);
+      };
+
+      circle.addListener('click', showOutlierInfo);
+      marker.addListener('click', showOutlierInfo);
+
+      googleMapLayers.outliers.push(circle);
+      googleMapLayers.outliers.push(marker);
+    });
+  }
+
+  // 4. Plot 4 Active Saturday Mobile Van Stops
+  const stops = (currentSchedule && currentSchedule.stops) || [];
+  stops.forEach((s) => {
+    const lat = Number(s.lat);
+    const lon = Number(s.lon);
+    if (isNaN(lat) || isNaN(lon)) return;
+
+    const stopIcon = {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(`
+        <svg xmlns="http://www.w3.org/2000/svg" width="38" height="48" viewBox="0 0 38 48">
+          <defs>
+            <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+              <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000000" flood-opacity="0.4"/>
+            </filter>
+          </defs>
+          <path d="M19 1C9.6 1 2 8.6 2 18c0 13 17 28 17 28s17-15 17-28C36 8.6 28.4 1 19 1z" fill="#059669" stroke="#ffffff" stroke-width="2.5" filter="url(#shadow)"/>
+          <circle cx="19" cy="18" r="12" fill="#ffffff"/>
+          <text x="19" y="23" font-size="12" font-family="system-ui, -apple-system, sans-serif" font-weight="900" fill="#065f46" text-anchor="middle">S${s.saturday_index}</text>
+        </svg>
+      `),
+      scaledSize: new google.maps.Size(38, 48),
+      anchor: new google.maps.Point(19, 48),
+    };
+
+    const marker = new google.maps.Marker({
+      position: { lat, lng: lon },
+      map: googleMapInstance,
+      title: `Saturday ${s.saturday_index}: ${s.neighborhood}`,
+      icon: stopIcon,
+      zIndex: 100,
+      animation: google.maps.Animation.DROP,
+    });
+
+    const gmapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(s.street_intersection || (lat + ',' + lon))}`;
+    const gmapsDir = `https://www.google.com/maps/dir/?api=1&destination=${encodeURIComponent(s.street_intersection || (lat + ',' + lon))}`;
+
+    marker.addListener('click', () => {
+      googleInfoWindow.setContent(`
+        <div style="font-family:system-ui,-apple-system,sans-serif;font-size:12px;line-height:1.45;padding:4px;max-width:280px;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px;">
+            <span style="background:#059669;color:white;font-weight:800;font-size:11px;padding:2px 6px;border-radius:4px;">
+              Saturday ${s.saturday_index}
+            </span>
+            <span style="font-size:11px;color:#64748b;font-weight:600;">${s.saturday_date}</span>
+          </div>
+          <div style="font-weight:bold;color:#0f172a;font-size:14px;margin-top:2px;">${s.neighborhood}</div>
+          <div style="font-weight:600;color:#047857;margin-top:2px;">${s.landmark_name}</div>
+          <div style="color:#64748b;font-size:11px;">${s.street_intersection}</div>
+          <div style="background:#ecfdf5;border:1px solid #a7f3d0;color:#065f46;padding:6px;border-radius:6px;margin-top:6px;font-size:11px;line-height:1.35;">
+            <b>Clinical Siting Rationale:</b> ${s.siting_rationale}
+          </div>
+          <div style="display:flex;gap:6px;margin-top:8px;">
+            <a href="${gmapsDir}" target="_blank" rel="noopener noreferrer" style="flex:1;text-align:center;background:#059669;color:white;text-decoration:none;font-weight:bold;padding:5px 8px;border-radius:6px;font-size:11px;">
+              Directions
+            </a>
+            <a href="${gmapsUrl}" target="_blank" rel="noopener noreferrer" style="flex:1;text-align:center;background:#f1f5f9;color:#334155;text-decoration:none;font-weight:bold;padding:5px 8px;border-radius:6px;font-size:11px;border:1px solid #cbd5e1;">
+              Google Maps
+            </a>
+          </div>
+        </div>
+      `);
+      googleInfoWindow.open(googleMapInstance, marker);
+      renderMapStopInspector(s);
+    });
+
+    googleMapLayers.stops.push(marker);
+  });
+
+  if (stops.length > 0) {
+    renderMapStopInspector(stops[0]);
+  }
+}
+
+// Leaflet Fallback Implementation
+function initLeafletMaps(mapEl) {
+  isGoogleMaps = false;
   if (!mapInstance) {
     try {
       if (mapEl._leaflet_id) {
@@ -425,21 +774,9 @@ async function initOrRefreshMap() {
     }
   }
 
-  // Force Leaflet recalculation across tab animation frames
   setTimeout(() => mapInstance && mapInstance.invalidateSize(), 80);
   setTimeout(() => mapInstance && mapInstance.invalidateSize(), 250);
-  setTimeout(() => mapInstance && mapInstance.invalidateSize(), 600);
 
-  if (!mapGeoData) {
-    try {
-      const res = await fetch('/api/geo/data');
-      if (res.ok) {
-        mapGeoData = await res.json();
-      }
-    } catch (err) {
-      console.error('Error loading map geo data:', err);
-    }
-  }
   plotMapMarkers();
 }
 
@@ -447,7 +784,6 @@ function plotMapMarkers() {
   if (!mapInstance) return;
   Object.values(mapLayerGroups).forEach((lg) => lg && lg.clearLayers());
 
-  // 1. Plot 347 Census Tracts (High-Need Care Deserts)
   if (mapGeoData && mapGeoData.tracts) {
     mapGeoData.tracts.forEach((t) => {
       const lat = Number(t.latitude != null ? t.latitude : t.lat);
@@ -477,7 +813,6 @@ function plotMapMarkers() {
     });
   }
 
-  // 2. Plot 252 Brick-and-Mortar Care Sites (Handles uppercase & lowercase keys)
   if (mapGeoData && mapGeoData.care_sites) {
     mapGeoData.care_sites.forEach((c) => {
       const lat = Number(c.lat != null ? c.lat : c.LAT);
@@ -509,7 +844,6 @@ function plotMapMarkers() {
     });
   }
 
-  // 3. Plot Institutional Outliers (Rikers Island & Psychiatric Campus)
   if (mapGeoData && mapGeoData.institutional_outliers) {
     mapGeoData.institutional_outliers.forEach((o) => {
       L.circleMarker([o.lat, o.lon], {
@@ -530,7 +864,6 @@ function plotMapMarkers() {
     });
   }
 
-  // 4. Plot 4 Active Saturday Mobile Van Stops
   const stops = (currentSchedule && currentSchedule.stops) || [];
   stops.forEach((s) => {
     const lat = Number(s.lat);
@@ -571,18 +904,35 @@ function plotMapMarkers() {
 }
 
 function toggleMapLayer(layerName, visible) {
-  if (!mapInstance || !mapLayerGroups[layerName]) return;
-  if (visible) {
-    mapLayerGroups[layerName].addTo(mapInstance);
-  } else {
-    mapInstance.removeLayer(mapLayerGroups[layerName]);
+  if (isGoogleMaps && googleMapLayers[layerName]) {
+    googleMapLayers[layerName].forEach((obj) => {
+      if (obj && obj.setMap) obj.setMap(visible ? googleMapInstance : null);
+    });
+  }
+  if (mapInstance && mapLayerGroups[layerName]) {
+    if (visible) {
+      mapLayerGroups[layerName].addTo(mapInstance);
+    } else {
+      mapInstance.removeLayer(mapLayerGroups[layerName]);
+    }
   }
 }
 
 function focusStopOnMap(lat, lon) {
   switchTab('map-tab');
   setTimeout(() => {
-    if (mapInstance) {
+    if (isGoogleMaps && googleMapInstance) {
+      googleMapInstance.setCenter({ lat: Number(lat), lng: Number(lon) });
+      googleMapInstance.setZoom(16);
+      const matched = googleMapLayers.stops.find((m) => {
+        if (!m || !m.getPosition) return false;
+        const p = m.getPosition();
+        return Math.abs(p.lat() - Number(lat)) < 0.001 && Math.abs(p.lng() - Number(lon)) < 0.001;
+      });
+      if (matched && window.google && window.google.maps) {
+        google.maps.event.trigger(matched, 'click');
+      }
+    } else if (mapInstance) {
       mapInstance.setView([lat, lon], 15);
       mapInstance.invalidateSize();
     }

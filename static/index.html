@@ -8,6 +8,17 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+  <!-- Google Maps JavaScript API (Project: qwiklabs-gcp-03-c81d344a3430) -->
+  <script>
+    window.googleMapsReady = false;
+    function onGoogleMapsApiLoaded() {
+      window.googleMapsReady = true;
+      if (typeof window.onGoogleMapsInit === 'function') {
+        window.onGoogleMapsInit();
+      }
+    }
+  </script>
+  <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBLk65sYYoxPmWGfLRRDxh_grAiz4KNaXg&libraries=places,geometry&callback=onGoogleMapsApiLoaded" async defer></script>
   <link rel="stylesheet" href="/static/styles.css">
 </head>
 <body class="bg-slate-100 text-slate-900 font-sans min-h-screen flex flex-col">
@@ -140,7 +151,12 @@
       <div id="tab-map-tab" class="tab-content space-y-4">
         <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
           <div>
-            <h2 class="text-base font-extrabold text-slate-900">Bronx Care Desert & Transit Accessibility Map</h2>
+            <div class="flex items-center gap-2">
+              <h2 class="text-base font-extrabold text-slate-900">Bronx Care Desert & Transit Accessibility Map</h2>
+              <span id="map-engine-badge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-50 text-emerald-800 border border-emerald-200">
+                <i class="fa-solid fa-map-location-dot text-emerald-600"></i> Google Maps Active
+              </span>
+            </div>
             <p class="text-xs text-slate-600">Inspect the 4 Saturday Mobile Van locations alongside 252 brick-and-mortar clinics and 347 residential census tracts.</p>
           </div>
           <!-- Interactive Map Layer Toggles -->
