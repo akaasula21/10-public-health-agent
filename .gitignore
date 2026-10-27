@@ -22,10 +22,10 @@ Thumbs.db
 # Local data
 *.parquet
 *.csv.gz
-
-# ADK runtime
-.adk/
+# ADK runtime & local DB
 *.db
+.adk/
+**/.adk/
 
 # Story slide deck content and pitch deck exports
 story/SLIDE_DECK_CONTENT.md

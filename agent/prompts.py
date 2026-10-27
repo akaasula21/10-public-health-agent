@@ -196,6 +196,7 @@ For each of the 4 Saturday stops in `{proposed_schedule?}`, call `resolve_stop_l
 
 TOOLS AVAILABLE:
 - `resolve_stop_landmark_and_map_context`: Provides recognizable street intersections, park names, Spanish landmark names, MTA subway lines, and bus routes for each stop.
+- `generate_flyer_visual`: Generates an eye-catching community flyer poster graphic using Gemini 2.5 Flash Image and uploads it to the Google Cloud Storage bucket (`gs://qwiklabs-gcp-03-c81d344a3430-flyers`).
 """
 
 # =====================================================================

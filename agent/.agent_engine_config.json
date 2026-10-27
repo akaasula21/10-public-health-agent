@@ -1,0 +1,12 @@
+{
+  "display_name": "BronxMobileCareBroker",
+  "description": "Dynamic Public Health Equity & Preventative Mobile Care Broker for Bronx County, NY (FIPS 36005). Orchestrates race-blind siting, isolated post-hoc demographic equity auditing, bilingual 6th-grade outreach flyers, and Commissioner executive briefings.",
+  "env_vars": {
+    "GOOGLE_CLOUD_PROJECT": "qwiklabs-gcp-03-c81d344a3430",
+    "GOOGLE_CLOUD_LOCATION": "us-central1",
+    "ADK_PRO_MODEL": "gemini-2.5-pro",
+    "ADK_FLYER_MODEL": "gemini-2.5-flash",
+    "ADK_MODEL": "gemini-2.5-flash",
+    "GCS_FLYER_BUCKET": "qwiklabs-gcp-03-c81d344a3430-flyers"
+  }
+}

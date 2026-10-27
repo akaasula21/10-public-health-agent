@@ -1,0 +1,11 @@
+.git
+.venv
+venv
+__pycache__
+*.pyc
+*.db
+.env
+.adk
+story/*.pdf
+notebooks/
+tests/

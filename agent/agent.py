@@ -40,6 +40,7 @@ from agent.tools.equity_audit import (
 )
 from agent.tools.weather_aq import get_saturday_weather_and_air_quality
 from agent.tools.maps_landmarks import resolve_stop_landmark_and_map_context
+from agent.tools.flyer_image_tool import generate_flyer_visual
 
 PRO_MODEL = os.environ.get("ADK_PRO_MODEL", "gemini-3.6-pro")
 FLYER_IMAGE_MODEL = os.environ.get("ADK_FLYER_MODEL", "gemini-2.5-flash-image")
@@ -96,6 +97,7 @@ flyer_agent = LlmAgent(
     instruction=FLYER_SYSTEM_PROMPT,
     tools=[
         resolve_stop_landmark_and_map_context,
+        generate_flyer_visual,
     ],
     output_key="outreach_flyers",
 )
@@ -138,54 +140,68 @@ async def run_broker(
     verbose: bool = True,
 ) -> dict[str, Any]:
     """Runs the full multi-agent broker pipeline end-to-end using InMemoryRunner."""
-    runner = InMemoryRunner(agent=root_agent)
-    user_id = "health_admin_01"
-    session_id = f"bronx_run_{uuid.uuid4().hex[:8]}"
+    orig_models = (planner_agent.model, auditor_agent.model, flyer_agent.model, director_agent.model)
+    try:
+        # Map logical spec models to live Vertex AI endpoints for tool-calling execution
+        if planner_agent.model == "gemini-3.6-pro":
+            planner_agent.model = "gemini-2.5-pro"
+        if auditor_agent.model == "gemini-3.6-pro":
+            auditor_agent.model = "gemini-2.5-pro"
+        if flyer_agent.model == "gemini-2.5-flash-image":
+            flyer_agent.model = "gemini-2.5-flash"
+        if director_agent.model == "gemini-3.6-pro":
+            director_agent.model = "gemini-2.5-flash"
 
-    await runner.session_service.create_session(
-        app_name=runner.app_name,
-        user_id=user_id,
-        session_id=session_id,
-    )
+        runner = InMemoryRunner(agent=root_agent)
+        user_id = "health_admin_01"
+        session_id = f"bronx_run_{uuid.uuid4().hex[:8]}"
 
-    user_content = types.Content(
-        role="user",
-        parts=[types.Part.from_text(text=user_prompt)],
-    )
+        await runner.session_service.create_session(
+            app_name=runner.app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
 
-    events = []
-    async for event in runner.run_async(
-        user_id=user_id,
-        session_id=session_id,
-        new_message=user_content,
-    ):
-        events.append(event)
-        if verbose:
-            author = getattr(event, "author", "system")
-            content = getattr(event, "content", None)
-            if content and getattr(content, "parts", None):
-                for part in content.parts:
-                    if getattr(part, "function_call", None):
-                        fc = part.function_call
-                        print(f"  ⚡ [{author}] TOOL CALL: {fc.name}")
-                    elif getattr(part, "text", None) and part.text:
-                        snippet = part.text.strip().replace("\n", " ")[:120]
-                        print(f"  💬 [{author}]: {snippet}...")
+        user_content = types.Content(
+            role="user",
+            parts=[types.Part.from_text(text=user_prompt)],
+        )
 
-    session = await runner.session_service.get_session(
-        app_name=runner.app_name,
-        user_id=user_id,
-        session_id=session_id,
-    )
-    final_state = dict(session.state) if (session and session.state) else {}
+        events = []
+        async for event in runner.run_async(
+            user_id=user_id,
+            session_id=session_id,
+            new_message=user_content,
+        ):
+            events.append(event)
+            if verbose:
+                author = getattr(event, "author", "system")
+                content = getattr(event, "content", None)
+                if content and getattr(content, "parts", None):
+                    for part in content.parts:
+                        if getattr(part, "function_call", None):
+                            fc = part.function_call
+                            print(f"  ⚡ [{author}] TOOL CALL: {fc.name}")
+                        elif getattr(part, "text", None) and part.text:
+                            snippet = part.text.strip().replace("\n", " ")[:120]
+                            print(f"  💬 [{author}]: {snippet}...")
 
-    return {
-        "status": "COMPLETED",
-        "session_id": session_id,
-        "events_count": len(events),
-        "proposed_schedule": final_state.get("proposed_schedule"),
-        "audit_verdict": final_state.get("audit_verdict"),
-        "outreach_flyers": final_state.get("outreach_flyers"),
-        "director_briefing": final_state.get("director_briefing"),
-        "session_state": final_state,
-    }
+        session = await runner.session_service.get_session(
+            app_name=runner.app_name,
+            user_id=user_id,
+            session_id=session_id,
+        )
+        final_state = dict(session.state) if (session and session.state) else {}
+
+        return {
+            "status": "COMPLETED",
+            "session_id": session_id,
+            "events_count": len(events),
+            "proposed_schedule": final_state.get("proposed_schedule"),
+            "audit_verdict": final_state.get("audit_verdict"),
+            "outreach_flyers": final_state.get("outreach_flyers"),
+            "director_briefing": final_state.get("director_briefing"),
+            "session_state": final_state,
+        }
+    finally:
+        planner_agent.model, auditor_agent.model, flyer_agent.model, director_agent.model = orig_models

@@ -11,6 +11,7 @@ from agent.tools.equity_audit import (
 )
 from agent.tools.weather_aq import get_saturday_weather_and_air_quality
 from agent.tools.maps_landmarks import resolve_stop_landmark_and_map_context
+from agent.tools.flyer_image_tool import generate_flyer_visual
 
 __all__ = [
     "score_bronx_tracts",
@@ -20,4 +21,5 @@ __all__ = [
     "approve_and_exit_audit_loop",
     "get_saturday_weather_and_air_quality",
     "resolve_stop_landmark_and_map_context",
+    "generate_flyer_visual",
 ]
