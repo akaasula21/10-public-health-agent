@@ -118,26 +118,80 @@ def save_schedule_run(
         db.add(audit_log)
 
     # 4. Add Outreach Flyers (split or general)
-    if outreach_flyers_text:
-        # Create an entry per stop or an aggregated flyer
-        for stop in created_stops:
-            flyer = OutreachFlyer(
-                schedule_id=schedule.id,
-                stop_id=stop.id,
-                saturday_index=stop.saturday_index,
-                headline_en=f"Free Bronx Mobile Health Clinic at {stop.landmark_name}",
-                body_en=outreach_flyers_text[:2500],
-                headline_es=f"Clínica Móvil de Salud Gratuita en {stop.landmark_name}",
-                body_es=outreach_flyers_text[:2500],
-                sms_en=f"Free Bronx Mobile Clinic this Saturday at {stop.landmark_name}! Free screenings, asthma care & meds. No insurance needed. {stop.street_intersection}.",
-                sms_es=f"¡Clínica Móvil de Salud este sábado en {stop.landmark_name}! Exámenes gratis, cuidado de asma y medicina. No se requiere seguro. {stop.street_intersection}.",
-                chw_script_en=f"Hi neighbor! The Bronx Mobile Health Van will be parked right at {stop.landmark_name} on {stop.saturday_date} from 9am to 3pm. Everything is free and confidential.",
-                chw_script_es=f"¡Hola vecino! La Unidad Móvil de Salud del Bronx estará en {stop.landmark_name} el {stop.saturday_date} de 9am a 3pm. Todo es gratis y confidencial.",
-            )
-            db.add(flyer)
+    for stop in created_stops:
+        subways_str = ", ".join(stop.subway_lines) if stop.subway_lines else "Near transit"
+        buses_str = ", ".join(stop.bus_lines) if stop.bus_lines else "Local bus routes"
+        body_en = f"""BRONX COMMUNITY HEALTH NOTICE — FREE MOBILE CLINIC
+Saturday #{stop.saturday_index}: {stop.neighborhood} ({stop.saturday_date})
+Location: {stop.landmark_name}
+Intersection: {stop.street_intersection}
+Transit Connections: Subway {subways_str} | Bus {buses_str}
+Operating Hours: 9:00 AM – 3:00 PM (No Appointment Needed)
+
+FREE SERVICES OFFERED ON-SITE:
+• Rapid Point-of-Care HbA1c Diabetes Testing (Results in 5 minutes)
+• Pediatric & Adult Asthma Screening + Free Albuterol Nebulizers
+• High Blood Pressure & Cardiovascular Health Checks
+• Seasonal Flu & COVID-19 Vaccinations
+• Direct Linkage to Primary Care Clinics (No Insurance Required)
+
+All services are 100% free, confidential, and open to all Bronx residents regardless of immigration or insurance status."""
+
+        body_es = f"""AVISO DE SALUD COMUNITARIA DEL BRONX — CLÍNICA MÓVIL GRATUITA
+Sábado #{stop.saturday_index}: {stop.neighborhood} ({stop.saturday_date})
+Ubicación: {stop.landmark_name}
+Intersección: {stop.street_intersection}
+Transporte Público: Metro {subways_str} | Autobús {buses_str}
+Horario de Atención: 9:00 AM – 3:00 PM (Sin necesidad de cita previa)
+
+SERVICIOS GRATUITOS OFRECIDOS EN EL LUGAR:
+• Pruebas Rápidas de Diabetes HbA1c (Resultados en 5 minutos)
+• Evaluaciones de Asma Infantil y de Adultos + Nebulizadores Albuterol Gratis
+• Control de Presión Arterial y Riesgo Cardiovascular
+• Vacunas contra la Gripe (Flu) y COVID-19
+• Conexión Directa con Médicos de Cabecera (No se requiere seguro médico)
+
+Todos los servicios son 100% gratuitos, confidenciales y accesibles para todos los vecinos del Bronx, sin importar su estatus migratorio o seguro médico."""
+
+        flyer = OutreachFlyer(
+            schedule_id=schedule.id,
+            stop_id=stop.id,
+            saturday_index=stop.saturday_index,
+            headline_en=f"Free Mobile Health Clinic at {stop.landmark_name}",
+            body_en=body_en,
+            headline_es=f"Clínica Móvil de Salud Gratuita en {stop.landmark_name}",
+            body_es=body_es,
+            sms_en=f"Free Bronx Mobile Clinic this Saturday at {stop.landmark_name}! Free screenings, asthma care & meds. No insurance needed. {stop.street_intersection}.",
+            sms_es=f"¡Clínica Móvil de Salud este sábado en {stop.landmark_name}! Exámenes gratis, cuidado de asma y vacunas. Sin costo ni seguro. {stop.street_intersection}.",
+            chw_script_en=f"Hi neighbor! The Bronx Mobile Health Van will be parked right at {stop.landmark_name} on {stop.saturday_date} from 9am to 3pm. Everything is free, fast, and confidential.",
+            chw_script_es=f"¡Hola vecino! La Unidad Móvil de Salud del Bronx estará en {stop.landmark_name} el {stop.saturday_date} de 9am a 3pm. Todo es gratis, rápido y confidencial.",
+        )
+        db.add(flyer)
 
     db.commit()
     db.refresh(schedule)
+
+    try:
+        from agent.tools.flyer_image_tool import sync_flyers_to_gcs
+
+        flyers_payload = [
+            {
+                "saturday_index": f.saturday_index,
+                "headline_en": f.headline_en,
+                "body_en": f.body_en,
+                "headline_es": f.headline_es,
+                "body_es": f.body_es,
+                "sms_en": f.sms_en,
+                "sms_es": f.sms_es,
+                "chw_script_en": f.chw_script_en,
+                "chw_script_es": f.chw_script_es,
+            }
+            for f in schedule.flyers
+        ]
+        sync_flyers_to_gcs(str(schedule.id), schedule.target_month, flyers_payload)
+    except Exception as e:
+        logger.warning(f"Non-blocking GCS flyer sync skipped: {e}")
+
     return schedule
 
 
@@ -191,3 +245,159 @@ def get_audit_logs(db: Session, schedule_id: Optional[str] = None) -> List[Audit
     if schedule_id:
         query = query.filter(AuditLog.schedule_id == schedule_id)
     return query.order_by(desc(AuditLog.created_at)).all()
+
+
+def get_all_schedules(db: Session) -> List[Dict[str, Any]]:
+    """Retrieve all schedules ordered by created_at desc with stop counts and population."""
+    schedules = db.query(Schedule).order_by(desc(Schedule.created_at)).all()
+    results = []
+    for s in schedules:
+        total_pop = sum(st.total_pop for st in s.stops) if s.stops else 0
+        results.append({
+            "id": s.id,
+            "county_fips": s.county_fips,
+            "county_name": s.county_name,
+            "target_month": s.target_month,
+            "status": s.status,
+            "created_at": s.created_at,
+            "stop_count": len(s.stops),
+            "total_pop": total_pop,
+        })
+    return results
+
+
+def replan_schedule_stop(
+    db: Session,
+    schedule_id: str,
+    stop_id: str,
+    rejection_category: str = "ROAD_CONSTRUCTION",
+    rejection_reason: str = "Admin requested relocation due to street work",
+    admin_user: str = "admin@bronxhealth.org",
+) -> Schedule:
+    """Human-in-the-Loop: Replace a single rejected stop with the next best eligible tract."""
+    schedule = get_schedule_by_id(db, schedule_id)
+    if not schedule:
+        raise ValueError(f"Schedule {schedule_id} not found.")
+
+    stop = db.query(ScheduleStop).filter(ScheduleStop.id == stop_id).first()
+    if not stop:
+        raise ValueError(f"Stop {stop_id} not found.")
+
+    # 1. Record Admin Action
+    action = AdminAction(
+        schedule_id=schedule_id,
+        stop_id=stop_id,
+        action_type="REPLAN",
+        rejection_category=rejection_category,
+        rejection_reason=rejection_reason,
+        admin_user=admin_user,
+    )
+    db.add(action)
+
+    # 2. Load alternative tracts
+    from pathlib import Path
+    data_path = Path(__file__).resolve().parent.parent / "data" / "planner_tracts.json"
+    used_geo_ids = {s.geo_id for s in schedule.stops}
+    institutional_outliers = {"36005000100", "36005028400"}
+
+    candidates = []
+    if data_path.exists():
+        with open(data_path, "r") as f:
+            all_tracts = json.load(f)
+            for t in all_tracts:
+                gid = str(t.get("geo_id", ""))
+                if gid not in used_geo_ids and gid not in institutional_outliers:
+                    if t.get("is_community_residential_tract", True):
+                        candidates.append(t)
+
+    # Sort by composite_need_score or asthma/uninsured
+    candidates.sort(
+        key=lambda x: x.get("composite_need_score", 0.0) or (float(x.get("pct_asthma", 0) or 0) + float(x.get("pct_uninsured", 0) or 0)),
+        reverse=True,
+    )
+    replacement = candidates[0] if candidates else None
+
+    if replacement:
+        new_geo = str(replacement.get("geo_id"))
+        from agent.tools.maps_landmarks import BRONX_LANDMARK_REGISTRY
+        landmark_info = BRONX_LANDMARK_REGISTRY.get(new_geo, {})
+        new_neighborhood = landmark_info.get("neighborhood", f"Bronx Community (Tract {new_geo[-4:]})")
+        new_landmark = landmark_info.get("landmark_name", f"Community Health Plaza at Tract {new_geo[-4:]}")
+        new_intersection = landmark_info.get("street_intersection", "Grand Concourse & E 170th St, Bronx, NY")
+        new_subways = landmark_info.get("subway_lines", ["B", "D", "4"])
+        new_buses = landmark_info.get("bus_lines", ["Bx1", "Bx2"])
+
+        old_geo = stop.geo_id
+        old_neighborhood = stop.neighborhood
+
+        # Update Stop
+        stop.geo_id = new_geo
+        stop.neighborhood = new_neighborhood
+        stop.landmark_name = new_landmark
+        stop.street_intersection = new_intersection
+        stop.subway_lines = new_subways
+        stop.bus_lines = new_buses
+        stop.lat = float(replacement.get("latitude", stop.lat))
+        stop.lon = float(replacement.get("longitude", stop.lon))
+        stop.total_pop = int(replacement.get("total_pop", stop.total_pop) or stop.total_pop)
+        stop.pct_uninsured = float(replacement.get("pct_uninsured", stop.pct_uninsured) or stop.pct_uninsured)
+        stop.pct_asthma = float(replacement.get("pct_asthma", stop.pct_asthma) or stop.pct_asthma)
+        stop.pct_diabetes = float(replacement.get("pct_diabetes", stop.pct_diabetes) or stop.pct_diabetes)
+        stop.composite_score = float(replacement.get("composite_need_score", 88.5) or 88.5)
+        stop.siting_rationale = (
+            f"HITL Re-Plan Substitution: Previous stop ({old_neighborhood}) was relocated due to '{rejection_reason}'. "
+            f"Selected high-need residential tract {new_geo} in {new_neighborhood} ({stop.pct_asthma:.1f}% asthma, "
+            f"{stop.pct_uninsured:.1f}% uninsured) with direct subway access ({', '.join(new_subways)})."
+        )
+
+        # Update associated flyer
+        flyer = db.query(OutreachFlyer).filter(
+            OutreachFlyer.schedule_id == schedule_id,
+            OutreachFlyer.saturday_index == stop.saturday_index
+        ).first()
+        if flyer:
+            flyer.headline_en = f"Free Mobile Health Clinic at {new_landmark}"
+            flyer.headline_es = f"Clínica Móvil de Salud Gratuita en {new_landmark}"
+            flyer.sms_en = f"Free Bronx Mobile Clinic this Saturday at {new_landmark}! Free screenings, asthma care & meds. {new_intersection}."
+            flyer.sms_es = f"¡Clínica Móvil de Salud este sábado en {new_landmark}! Exámenes gratis, cuidado de asma y vacunas. {new_intersection}."
+            flyer.chw_script_en = f"Hi neighbor! The Bronx Mobile Health Van will be at {new_landmark} on {stop.saturday_date} from 9am to 3pm."
+            flyer.chw_script_es = f"¡Hola vecino! La Unidad Móvil de Salud del Bronx estará en {new_landmark} el {stop.saturday_date} de 9am a 3pm."
+
+        # Add Audit Log
+        audit = AuditLog(
+            schedule_id=schedule_id,
+            iteration_number=len(schedule.audit_logs) + 1,
+            audit_status="HITL_MODIFIED",
+            institutional_outliers_detected=[],
+            hpsa_diversity_status="VERIFIED",
+            violations=[],
+            auditor_comments=f"Stop #{stop.saturday_index} re-planned from {old_neighborhood} ({old_geo}) to {new_neighborhood} ({new_geo}). Reason: {rejection_reason}.",
+        )
+        db.add(audit)
+
+    db.commit()
+    db.refresh(schedule)
+
+    try:
+        from agent.tools.flyer_image_tool import sync_flyers_to_gcs
+
+        flyers_payload = [
+            {
+                "saturday_index": f.saturday_index,
+                "headline_en": f.headline_en,
+                "body_en": f.body_en,
+                "headline_es": f.headline_es,
+                "body_es": f.body_es,
+                "sms_en": f.sms_en,
+                "sms_es": f.sms_es,
+                "chw_script_en": f.chw_script_en,
+                "chw_script_es": f.chw_script_es,
+            }
+            for f in schedule.flyers
+        ]
+        sync_flyers_to_gcs(str(schedule.id), schedule.target_month, flyers_payload)
+    except Exception as e:
+        logger.warning(f"Non-blocking GCS flyer sync skipped: {e}")
+
+    return schedule
+

@@ -3,589 +3,440 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Bronx County Mobile Care Broker — Public Health Equity Dashboard</title>
-  <!-- Tailwind CSS -->
+  <title>Bronx Mobile Care Broker — Community Van Dispatch & Outreach Center</title>
   <script src="https://cdn.tailwindcss.com"></script>
-  <!-- FontAwesome -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <!-- Leaflet CSS & JS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
-  <style>
-    .tab-content { display: none; }
-    .tab-content.active { display: block; }
-    #map { height: 600px; width: 100%; border-radius: 0.75rem; }
-    .badge-outlier { background: #fee2e2; color: #991b1b; border: 1px solid #f87171; }
-    .badge-approved { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-  </style>
+  <link rel="stylesheet" href="/static/styles.css">
 </head>
-<body class="bg-slate-50 text-slate-900 font-sans min-h-screen flex flex-col">
+<body class="bg-slate-100 text-slate-900 font-sans min-h-screen flex flex-col">
 
-  <!-- Header -->
-  <header class="bg-slate-900 text-white shadow-lg sticky top-0 z-50">
-    <div class="max-w-7xl mx-auto px-4 py-3 flex flex-wrap justify-between items-center gap-4">
-      <div class="flex items-center space-x-3">
-        <div class="w-10 h-10 rounded-lg bg-teal-500 flex items-center justify-center text-slate-950 font-bold text-xl shadow">
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="fixed bottom-5 right-5 z-50 space-y-2 max-w-md"></div>
+
+  <!-- Top Healthcare Navigation Header -->
+  <header class="bg-slate-900 text-white shadow-md sticky top-0 z-40">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3 flex flex-wrap justify-between items-center gap-4">
+      <!-- Brand Identity -->
+      <div class="flex items-center gap-3">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500 flex items-center justify-center text-slate-950 font-bold text-lg shadow-sm">
           <i class="fa-solid fa-van-shuttle"></i>
         </div>
         <div>
-          <h1 class="text-lg md:text-xl font-bold tracking-tight flex items-center gap-2">
-            Bronx Mobile Care Broker
-            <span class="text-xs bg-teal-500/20 text-teal-300 border border-teal-500/30 px-2 py-0.5 rounded font-mono">FIPS 36005</span>
-          </h1>
-          <p class="text-xs text-slate-400">One County • One Van • Four Saturdays • Google ADK Multi-Agent System</p>
+          <div class="flex items-center gap-2">
+            <h1 class="text-base sm:text-lg font-bold tracking-tight">Bronx Preventative Mobile Care Broker</h1>
+            <span class="text-xs bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 px-2.5 py-0.5 rounded-full font-semibold">
+              Bronx County • NYC Health
+            </span>
+          </div>
+          <p class="text-xs text-slate-400">One County • One Mobile Van • Four Saturdays • Community-First Clinical Dispatch</p>
         </div>
       </div>
-      
-      <div class="flex items-center space-x-3">
-        <div id="db-status-pill" class="text-xs px-2.5 py-1 rounded-full bg-emerald-950 text-emerald-400 border border-emerald-800 flex items-center gap-1.5 font-medium">
-          <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-          Cloud SQL Connected
+
+      <!-- Schedule History Switcher & Quick Actions -->
+      <div class="flex flex-wrap items-center gap-2.5">
+        <div class="flex items-center bg-slate-800 border border-slate-700 rounded-xl px-3 py-1.5 gap-2">
+          <i class="fa-solid fa-clock-rotate-left text-emerald-400 text-xs"></i>
+          <label for="schedule-switcher" class="text-xs text-slate-300 font-medium">Schedule:</label>
+          <select id="schedule-switcher" onchange="onSwitchSchedule(this.value)" class="bg-transparent text-white text-xs font-semibold focus:outline-none cursor-pointer pr-2">
+            <option value="">Loading schedules...</option>
+          </select>
         </div>
-        <button onclick="triggerGenerateSchedule()" id="btn-generate" class="text-xs bg-teal-600 hover:bg-teal-500 text-white font-semibold px-3 py-1.5 rounded-lg shadow transition flex items-center gap-1.5">
-          <i class="fa-solid fa-arrows-rotate"></i>
-          <span>Re-Plan with AI</span>
+
+        <button onclick="openNewPlanModal()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5">
+          <i class="fa-solid fa-calendar-plus"></i>
+          <span>New Monthly Plan</span>
+        </button>
+
+        <button onclick="toggleCopilotDrawer()" id="copilot-toggle-btn" class="text-xs bg-slate-800 hover:bg-slate-700 text-emerald-300 border border-emerald-500/40 font-bold px-3.5 py-2 rounded-xl transition flex items-center gap-1.5">
+          <i class="fa-solid fa-user-doctor"></i>
+          <span>Ask Care Copilot</span>
         </button>
       </div>
     </div>
 
-    <!-- Navigation Tabs -->
-    <nav class="bg-slate-800 border-t border-slate-700/60">
-      <div class="max-w-7xl mx-auto px-4 flex space-x-1 sm:space-x-4 overflow-x-auto">
-        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-teal-400 text-white flex items-center gap-2">
-          <i class="fa-solid fa-calendar-days text-teal-400"></i> Monthly Scheduler & HITL
+    <!-- Clean Clinical Sub-Navigation Tabs -->
+    <nav class="bg-white border-b border-slate-200 text-slate-700">
+      <div class="max-w-[1440px] mx-auto px-4 sm:px-6 flex space-x-2 overflow-x-auto">
+        <button onclick="switchTab('dashboard')" id="nav-dashboard" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-emerald-500 text-emerald-700 bg-emerald-50/60 flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-calendar-check"></i> 1. Saturday Van Schedule
         </button>
-        <button onclick="switchTab('map-tab')" id="nav-map-tab" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
-          <i class="fa-solid fa-map-location-dot"></i> Geospatial Map Layer
+        <button onclick="switchTab('map-tab')" id="nav-map-tab" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-map-location-dot"></i> 2. Neighborhood Care Desert Map
         </button>
-        <button onclick="switchTab('flyers')" id="nav-flyers" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
-          <i class="fa-solid fa-bullhorn"></i> Bilingual Flyer Studio (EN/ES)
+        <button onclick="switchTab('flyers')" id="nav-flyers" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-bullhorn"></i> 3. Bilingual Flyers & SMS (EN/ES)
         </button>
-        <button onclick="switchTab('briefing')" id="nav-briefing" class="tab-btn px-4 py-3 text-sm font-medium border-b-2 border-transparent text-slate-400 hover:text-slate-200 flex items-center gap-2">
-          <i class="fa-solid fa-clipboard-check"></i> Audit Trail & Judge Rubric
+        <button onclick="switchTab('briefing')" id="nav-briefing" class="tab-btn px-4 py-3 text-xs sm:text-sm font-bold border-b-2 border-transparent text-slate-600 hover:text-slate-900 flex items-center gap-2 whitespace-nowrap">
+          <i class="fa-solid fa-shield-heart"></i> 4. Health Equity & Safety Review
         </button>
       </div>
     </nav>
   </header>
 
-  <!-- Main Content Container -->
-  <main class="max-w-7xl mx-auto px-4 py-6 flex-1 w-full">
-
-    <!-- ========================================== -->
-    <!-- TAB 1: MONTHLY SCHEDULER & HITL CONTROL    -->
-    <!-- ========================================== -->
-    <div id="tab-dashboard" class="tab-content active space-y-6">
-      
-      <!-- Top Overview Bar -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-wrap justify-between items-center gap-4">
+  <!-- Clinical Impact KPI Bar -->
+  <section id="kpi-summary-bar" class="bg-white border-b border-slate-200 shadow-sm">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-3.5 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 items-center">
+      <div class="flex items-center justify-between sm:justify-start gap-3">
+        <div class="w-9 h-9 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center justify-center text-emerald-700">
+          <i class="fa-solid fa-calendar-day"></i>
+        </div>
         <div>
-          <div class="flex items-center gap-2.5">
-            <h2 class="text-xl font-bold text-slate-900" id="sched-title">November 2026 Mobile Care Deployment</h2>
-            <span id="sched-status-badge" class="badge-approved text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider">APPROVED</span>
+          <div class="text-xs text-slate-500 font-medium">Selected Deployment</div>
+          <div id="kpi-month-title" class="text-sm font-extrabold text-slate-900">November 2026</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between sm:justify-start gap-3">
+        <div class="w-9 h-9 rounded-lg bg-sky-50 border border-sky-200 flex items-center justify-center text-sky-700">
+          <i class="fa-solid fa-users"></i>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Community Reach (4 Stops)</div>
+          <div id="kpi-total-pop" class="text-sm font-extrabold text-slate-900">20,710 Residents</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between sm:justify-start gap-3">
+        <div class="w-9 h-9 rounded-lg bg-amber-50 border border-amber-200 flex items-center justify-center text-amber-700">
+          <i class="fa-solid fa-lungs"></i>
+        </div>
+        <div>
+          <div class="text-xs text-slate-500 font-medium">Priority Health Burden</div>
+          <div id="kpi-asthma" class="text-sm font-extrabold text-slate-900">17.4% Asthma • 25.2% Uninsured</div>
+        </div>
+      </div>
+
+      <div class="flex items-center justify-between lg:justify-end gap-3">
+        <span id="kpi-plan-status" class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+          Equity Verified • Ready
+        </span>
+        <button onclick="approveWholeSchedule()" class="text-xs bg-emerald-700 hover:bg-emerald-600 text-white font-bold px-3.5 py-2 rounded-xl shadow-sm transition flex items-center gap-1.5">
+          <i class="fa-solid fa-check-double"></i> Approve Plan
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Main Workspace + Docked AI Care Copilot -->
+  <div class="max-w-[1440px] mx-auto px-4 sm:px-6 py-6 flex-1 w-full flex flex-col lg:flex-row gap-6 items-start">
+
+    <!-- Left / Primary Clinical Workspace -->
+    <main class="flex-1 w-full min-w-0">
+
+      <!-- TAB 1: 4-SATURDAY DEPLOYMENT CARDS -->
+      <div id="tab-dashboard" class="tab-content active space-y-5">
+        <div class="flex flex-wrap items-center justify-between gap-2">
+          <div>
+            <h2 class="text-lg font-extrabold text-slate-900">4-Saturday Mobile Van Deployment Schedule</h2>
+            <p class="text-xs text-slate-600">Each Saturday serves a distinct Bronx shortage zone with zero weekend clinic hours. Need to adjust a location due to street work? Click <b>Relocate Stop</b> on any card.</p>
           </div>
-          <p class="text-sm text-slate-600 mt-1" id="sched-methodology">
-            Race-blind composite need siting across 347 tracts, audited post-hoc for demographic equity across 4 distinct HPSA zones.
-          </p>
+        </div>
+        <div id="stops-grid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+      </div>
+
+      <!-- TAB 2: INTERACTIVE CARE DESERT MAP -->
+      <div id="tab-map-tab" class="tab-content space-y-4">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-wrap items-center justify-between gap-4">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">Bronx Care Desert & Transit Accessibility Map</h2>
+            <p class="text-xs text-slate-600">Inspect the 4 Saturday Mobile Van locations alongside 252 brick-and-mortar clinics and 347 residential census tracts.</p>
+          </div>
+          <!-- Interactive Map Layer Toggles -->
+          <div class="flex flex-wrap items-center gap-3 text-xs font-semibold">
+            <label class="inline-flex items-center gap-1.5 bg-emerald-50 text-emerald-900 border border-emerald-200 px-3 py-1.5 rounded-lg cursor-pointer">
+              <input type="checkbox" checked onchange="toggleMapLayer('stops', this.checked)" class="accent-emerald-600">
+              <span>4 Mobile Van Stops</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 bg-sky-50 text-sky-900 border border-sky-200 px-3 py-1.5 rounded-lg cursor-pointer">
+              <input type="checkbox" checked onchange="toggleMapLayer('clinics', this.checked)" class="accent-sky-600">
+              <span>252 Fixed Clinics (Hours)</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 bg-amber-50 text-amber-900 border border-amber-200 px-3 py-1.5 rounded-lg cursor-pointer">
+              <input type="checkbox" checked onchange="toggleMapLayer('tracts', this.checked)" class="accent-amber-600">
+              <span>347 Neighborhood Zones</span>
+            </label>
+            <label class="inline-flex items-center gap-1.5 bg-red-50 text-red-900 border border-red-200 px-3 py-1.5 rounded-lg cursor-pointer">
+              <input type="checkbox" checked onchange="toggleMapLayer('outliers', this.checked)" class="accent-red-600">
+              <span>Excluded Facilities (Rikers/Psych)</span>
+            </label>
+          </div>
         </div>
 
-        <!-- Human-in-the-Loop Actions -->
-        <div class="flex items-center gap-2">
-          <button onclick="submitAdminDecision('APPROVE')" class="bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2">
-            <i class="fa-solid fa-check"></i> Approve Plan
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <div class="lg:col-span-2 bg-white rounded-2xl shadow-sm border border-slate-200 p-3">
+            <div id="map"></div>
+          </div>
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-col justify-between space-y-4">
+            <div>
+              <h3 class="text-sm font-extrabold uppercase tracking-wider text-slate-500 mb-3">Selected Stop Details</h3>
+              <div id="map-stop-inspector" class="text-xs text-slate-600">Click any green Saturday pin (S1–S4) on the map to inspect clinical details.</div>
+            </div>
+            <div class="bg-slate-50 rounded-xl p-3.5 border border-slate-200 space-y-2 text-xs">
+              <div class="font-bold text-slate-800">Map Legend</div>
+              <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-emerald-600 inline-block"></span> <span><b>S1–S4 Green Pins:</b> Scheduled Saturday Van Stops</span></div>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-yellow-500 inline-block"></span> <span><b>Yellow Dots:</b> Clinics open &lt;40 hrs/wk (Closed Sat)</span></div>
+              <div class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-sky-600 inline-block"></span> <span><b>Blue Dots:</b> Full-time Fixed Clinics</span></div>
+              <div class="flex items-center gap-2"><span class="w-3.5 h-3.5 rounded-full bg-red-500 inline-block"></span> <span><b>Red Circles:</b> Excluded Institutional Facilities</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- TAB 3: BILINGUAL FLYER STUDIO & SMS DISPATCH -->
+      <div id="tab-flyers" class="tab-content space-y-5">
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 flex flex-wrap justify-between items-center gap-4 no-print">
+          <div>
+            <h2 class="text-base font-extrabold text-slate-900">Bilingual Community Flyer & SMS Outreach Studio</h2>
+            <p class="text-xs text-slate-600">Select any Saturday stop below to preview and print 6th-grade reading level English and Spanish community handouts.</p>
+          </div>
+          <button onclick="window.print()" class="bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold px-4 py-2.5 rounded-xl shadow-sm flex items-center gap-2 transition">
+            <i class="fa-solid fa-print"></i> Print Community Handout
           </button>
-          <button onclick="openDenyModal()" class="bg-rose-600 hover:bg-rose-500 text-white text-sm font-semibold px-4 py-2 rounded-lg shadow-sm transition flex items-center gap-2">
-            <i class="fa-solid fa-xmark"></i> Deny with Reason
-          </button>
+        </div>
+
+        <!-- Saturday 1–4 Selector Bar -->
+        <div id="flyer-sat-selector" class="flex flex-wrap gap-2 no-print"></div>
+
+        <!-- Visual Poster Banner (Gemini 2.5 Flash Image + Cloud Storage Archive) -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-4 flex flex-col md:flex-row items-center gap-5 no-print">
+          <img id="flyer-poster-img" src="/static/flyers/saturday_1.png" alt="Community Clinic Flyer Poster" class="w-full md:w-56 h-36 object-cover rounded-xl border border-slate-200 shadow-sm shrink-0" />
+          <div class="space-y-2 flex-1">
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800 border border-emerald-300">
+                <i class="fa-solid fa-image"></i> Community Poster Ready
+              </span>
+              <span class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-sky-50 text-sky-800 border border-sky-200">
+                <i class="fa-solid fa-cloud-arrow-up"></i> Archived to Cloud Storage Bucket
+              </span>
+            </div>
+            <h4 class="text-sm font-bold text-slate-900">Neighborhood Bodega &amp; Transit Stop Poster Graphic</h4>
+            <p class="text-xs text-slate-600 leading-relaxed">
+              Automatically illustrated for each Bronx neighborhood stop and backed up to <code class="bg-slate-100 px-1.5 py-0.5 rounded text-slate-800">gs://qwiklabs-gcp-03-c81d344a3430-flyers/</code> alongside the bilingual print handouts and SMS scripts below.
+            </p>
+          </div>
+        </div>
+
+        <!-- Printable Side-by-Side English & Spanish Flyers -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <!-- English Notice -->
+          <div class="bg-white rounded-2xl shadow-sm border-2 border-emerald-600 overflow-hidden print-sheet">
+            <div class="bg-emerald-600 text-white px-5 py-3 flex justify-between items-center">
+              <span class="font-bold text-xs uppercase tracking-wider"><i class="fa-solid fa-file-medical mr-1.5"></i> English Community Notice</span>
+              <span class="text-xs bg-emerald-800 px-2.5 py-0.5 rounded font-semibold">100% Free • Walk-In</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <h3 id="flyer-headline-en" class="text-lg font-extrabold text-slate-900 leading-snug">Free Bronx Mobile Health Clinic</h3>
+              <div id="flyer-body-en" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed bg-slate-50 p-4 rounded-xl border border-slate-200"></div>
+            </div>
+          </div>
+
+          <!-- Spanish Notice -->
+          <div class="bg-white rounded-2xl shadow-sm border-2 border-amber-500 overflow-hidden print-sheet">
+            <div class="bg-amber-500 text-slate-950 px-5 py-3 flex justify-between items-center">
+              <span class="font-bold text-xs uppercase tracking-wider"><i class="fa-solid fa-language mr-1.5"></i> Aviso a la Comunidad (Español)</span>
+              <span class="text-xs bg-amber-200 px-2.5 py-0.5 rounded font-bold">100% Gratis • Sin Cita</span>
+            </div>
+            <div class="p-6 space-y-4">
+              <h3 id="flyer-headline-es" class="text-lg font-extrabold text-slate-900 leading-snug">Clínica Móvil de Salud Gratuita</h3>
+              <div id="flyer-body-es" class="text-xs sm:text-sm text-slate-700 whitespace-pre-line leading-relaxed bg-amber-50/40 p-4 rounded-xl border border-amber-200"></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SMS Blast & CHW Door-Knocking Scripts -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6 no-print">
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <div class="flex justify-between items-center">
+              <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+                <i class="fa-solid fa-comment-sms text-emerald-600"></i> Patient Text Message Blast (SMS)
+              </h4>
+              <span id="sms-en-count" class="text-xs font-mono text-slate-500">0 / 160 chars</span>
+            </div>
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-800 font-mono" id="sms-en"></div>
+            <div class="flex justify-between items-center pt-1">
+              <span class="text-xs font-semibold text-amber-800">Spanish SMS</span>
+              <span id="sms-es-count" class="text-xs font-mono text-slate-500">0 / 160 chars</span>
+            </div>
+            <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200 text-xs text-slate-800 font-mono" id="sms-es"></div>
+            <div class="flex gap-2 pt-1">
+              <button onclick="copyText('sms-en', 'English SMS')" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-800 font-semibold px-3 py-1.5 rounded-lg transition">
+                <i class="fa-regular fa-copy mr-1"></i> Copy English SMS
+              </button>
+              <button onclick="copyText('sms-es', 'Spanish SMS')" class="text-xs bg-amber-100 hover:bg-amber-200 text-amber-900 font-semibold px-3 py-1.5 rounded-lg transition">
+                <i class="fa-regular fa-copy mr-1"></i> Copiar SMS Español
+              </button>
+            </div>
+          </div>
+
+          <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-3">
+            <h4 class="text-sm font-bold text-slate-900 flex items-center gap-2">
+              <i class="fa-solid fa-people-arrows text-teal-600"></i> Community Health Worker (CHW) Outreach Script
+            </h4>
+            <div class="p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-700 italic leading-relaxed" id="chw-en"></div>
+            <div class="p-3 bg-amber-50/60 rounded-xl border border-amber-200 text-xs text-slate-700 italic leading-relaxed" id="chw-es"></div>
+          </div>
         </div>
       </div>
 
-      <!-- 4 Saturday Cards Grid -->
-      <div id="saturday-cards-container" class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <!-- Rendered dynamically via JavaScript -->
-        <div class="col-span-full py-12 text-center text-slate-500">
-          <i class="fa-solid fa-circle-notch fa-spin text-2xl text-teal-600 mb-2"></i>
-          <p>Loading active 4-Saturday deployment from Cloud SQL...</p>
+      <!-- TAB 4: HEALTH EQUITY GOVERNANCE & SAFETY REVIEW -->
+      <div id="tab-briefing" class="tab-content space-y-5">
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <div class="text-xs font-bold uppercase text-emerald-700 mb-1"><i class="fa-solid fa-ban mr-1"></i> Institutional Facility Filter</div>
+            <div class="text-sm font-bold text-slate-900">Rikers Island &amp; Inpatient Wards Excluded</div>
+            <p class="text-xs text-slate-600 mt-1">Automatically screens out correctional facilities (83.2% group quarters) and psychiatric campuses so the van only visits walkable residential neighborhoods.</p>
+          </div>
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <div class="text-xs font-bold uppercase text-teal-700 mb-1"><i class="fa-solid fa-scale-balanced mr-1"></i> Fair Needs-Based Siting</div>
+            <div class="text-sm font-bold text-slate-900">95.7% Priority Demographic Reach</div>
+            <p class="text-xs text-slate-600 mt-1">Sites are ranked by medical shortage, uninsurance, and chronic disease burden, then verified post-selection for equitable neighborhood coverage.</p>
+          </div>
+          <div class="bg-white rounded-2xl p-4 border border-slate-200 shadow-sm">
+            <div class="text-xs font-bold uppercase text-amber-700 mb-1"><i class="fa-solid fa-clock mr-1"></i> Weekend Care Gap Solved</div>
+            <div class="text-sm font-bold text-slate-900">4 Distinct Bronx Shortage Zones</div>
+            <p class="text-xs text-slate-600 mt-1">Targets neighborhoods where nearby brick-and-mortar clinics are closed on Saturdays, eliminating the weekend primary care desert.</p>
+          </div>
+        </div>
+
+        <!-- Live Self-Correction & Governance Review Log -->
+        <div class="bg-white rounded-2xl shadow-sm border border-slate-200 p-5 space-y-4">
+          <div>
+            <h3 class="text-base font-extrabold text-slate-900">Automated Safety &amp; Equity Verification History</h3>
+            <p class="text-xs text-slate-600">Shows how the system automatically flags and corrects clustering or non-residential locations before presenting the final plan.</p>
+          </div>
+          <div id="audit-timeline-list" class="space-y-3"></div>
+        </div>
+
+        <!-- Commissioner Executive Summary -->
+        <div class="bg-slate-900 text-slate-100 rounded-2xl shadow-sm p-6 space-y-3">
+          <div class="text-xs font-bold uppercase tracking-wider text-emerald-400">Health Commissioner Executive Summary</div>
+          <div id="director-briefing-text" class="text-xs sm:text-sm font-mono whitespace-pre-line leading-relaxed text-slate-200"></div>
         </div>
       </div>
-    </div>
 
-    <!-- ========================================== -->
-    <!-- TAB 2: GEOSPATIAL MAP LAYER                -->
-    <!-- ========================================== -->
-    <div id="tab-map-tab" class="tab-content space-y-4">
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex flex-wrap justify-between items-center gap-3">
-        <div>
-          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <i class="fa-solid fa-map text-teal-600"></i>
-            Geospatial Equity & Outlier Inspection Map
-          </h2>
-          <p class="text-xs text-slate-500">Visualizing all 347 Bronx census tracts, 252 existing care sites, 4 active van deployments, and rejected institutional outliers.</p>
-        </div>
-        <div class="flex items-center gap-4 text-xs font-medium">
-          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-teal-600"></span> Active Stops (4)</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-600"></span> Rejected Outliers (Trap 2)</span>
-          <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-sky-500"></span> Primary Care Clinics (252)</span>
-        </div>
-      </div>
+    </main>
 
-      <div class="bg-white p-3 rounded-xl shadow-sm border border-slate-200">
-        <div id="map"></div>
-      </div>
-
-      <!-- Outlier Explainer Callout -->
-      <div class="bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-        <i class="fa-solid fa-triangle-exclamation text-amber-600 text-lg mt-0.5"></i>
-        <div class="text-xs text-amber-900">
-          <span class="font-bold">Trap 2 Defense (Institutional Outliers):</span> The Auditor automatically detected and rejected 
-          <span class="font-semibold underline">Rikers Island (36005000100)</span> (83.2% group quarters) and 
-          <span class="font-semibold underline">Bronx Psychiatric Center (36005028400)</span> (39.8% group quarters). Siting here would deploy care to a correctional island or secure facility rather than a walkable residential community.
+    <!-- Right-Hand Docked AI Care Copilot Drawer -->
+    <aside id="copilot-drawer" class="w-full lg:w-96 bg-white rounded-2xl shadow-md border border-slate-200 flex flex-col shrink-0 overflow-hidden sticky top-20">
+      <div class="bg-slate-900 text-white px-4 py-3.5 flex justify-between items-center">
+        <div class="flex items-center gap-2.5">
+          <div class="w-8 h-8 rounded-lg bg-emerald-500 text-slate-950 flex items-center justify-center font-bold text-sm">
+            <i class="fa-solid fa-user-doctor"></i>
+          </div>
+          <div>
+            <h3 class="text-sm font-bold leading-tight">Bronx Care Copilot</h3>
+            <p class="text-xs text-emerald-300">Ask about locations, weather, or flyers</p>
+          </div>
         </div>
-      </div>
-    </div>
-
-    <!-- ========================================== -->
-    <!-- TAB 3: BILINGUAL FLYER STUDIO              -->
-    <!-- ========================================== -->
-    <div id="tab-flyers" class="tab-content space-y-6">
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-wrap justify-between items-center gap-4">
-        <div>
-          <h2 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-            <i class="fa-solid fa-bullhorn text-teal-600"></i>
-            Public Notice & Bilingual Outreach Studio
-          </h2>
-          <p class="text-xs text-slate-500">Produced by <span class="font-semibold text-teal-700">ExclusiveFlyerSubAgent</span>: strictly 6th-grade reading level, zero technical jargon, side-by-side English & Spanish.</p>
-        </div>
-        <button onclick="window.print()" class="text-xs bg-slate-800 hover:bg-slate-700 text-white font-semibold px-3 py-2 rounded-lg shadow-sm flex items-center gap-1.5">
-          <i class="fa-solid fa-print"></i> Print Community Notice
+        <button onclick="toggleCopilotDrawer()" class="text-slate-400 hover:text-white text-sm lg:hidden">
+          <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
 
-      <!-- Outreach Channels Grid -->
-      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- English Flyer -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
-            <span class="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded">English Community Notice</span>
-            <button onclick="copyToClipboard('flyer-en-text')" class="text-xs text-slate-500 hover:text-slate-800"><i class="fa-regular fa-copy"></i> Copy</button>
-          </div>
-          <div id="flyer-en-text" class="text-sm text-slate-700 whitespace-pre-line leading-relaxed font-sans">
-            Loading English flyers...
-          </div>
+      <!-- One-Click Clinical Prompt Starters -->
+      <div class="p-3 bg-slate-50 border-b border-slate-200 space-y-1.5">
+        <div class="text-xs font-semibold text-slate-500">Quick Questions:</div>
+        <div class="flex flex-wrap gap-1.5">
+          <button onclick="askCopilotPreset('Why was Saturday 1 selected and what is the clinical need?')" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg transition font-medium">
+            Why Saturday 1?
+          </button>
+          <button onclick="askCopilotPreset('Verify why Rikers Island and Bronx Psychiatric were excluded.')" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg transition font-medium">
+            Why Rikers Excluded?
+          </button>
+          <button onclick="askCopilotPreset('What is our weather contingency setup for the mobile van?')" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg transition font-medium">
+            Weather Plan
+          </button>
+          <button onclick="askCopilotPreset('Draft a short Spanish SMS reminder for this Saturday.')" class="text-xs bg-white hover:bg-emerald-50 text-slate-700 border border-slate-300 px-2.5 py-1 rounded-lg transition font-medium">
+            Spanish SMS
+          </button>
         </div>
+      </div>
 
-        <!-- Spanish Flyer -->
-        <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-          <div class="flex justify-between items-center pb-3 border-b border-slate-100">
-            <span class="text-xs font-bold uppercase tracking-wider text-teal-700 bg-teal-50 px-2.5 py-1 rounded">Aviso Comunitario en Español</span>
-            <button onclick="copyToClipboard('flyer-es-text')" class="text-xs text-slate-500 hover:text-slate-800"><i class="fa-regular fa-copy"></i> Copy</button>
-          </div>
-          <div id="flyer-es-text" class="text-sm text-slate-700 whitespace-pre-line leading-relaxed font-sans">
-            Cargando volantes en español...
+      <!-- Chat Message Feed -->
+      <div id="copilot-messages" class="p-4 space-y-3 h-80 overflow-y-auto copilot-scroll bg-slate-50/50">
+        <div class="flex justify-start">
+          <div class="bg-white text-slate-800 border border-slate-200 text-xs rounded-2xl rounded-tl-sm px-3.5 py-3 max-w-[92%] shadow-sm leading-relaxed">
+            Hello! I am your <b>Bronx Mobile Care Copilot</b>. Ask me why any neighborhood was chosen, check medical kit supplies, or review our safety exclusions.
           </div>
         </div>
       </div>
 
-      <!-- Fast Broadcast Snippets -->
-      <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div class="bg-slate-900 text-slate-100 rounded-xl p-5 shadow-sm space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-teal-400 flex items-center gap-1.5"><i class="fa-solid fa-comment-sms"></i> 160-Char SMS Broadcast Copy</span>
-            <button onclick="copyToClipboard('sms-snippet')" class="text-xs text-slate-400 hover:text-white"><i class="fa-regular fa-copy"></i> Copy</button>
-          </div>
-          <p id="sms-snippet" class="text-xs font-mono bg-slate-800 p-3 rounded text-slate-300">
-            Free Bronx Mobile Clinic this Saturday! Free health checks, asthma care, blood pressure & meds. No insurance needed. Find us at local parks!
-          </p>
-        </div>
-
-        <div class="bg-slate-900 text-slate-100 rounded-xl p-5 shadow-sm space-y-2">
-          <div class="flex justify-between items-center">
-            <span class="text-xs font-bold text-teal-400 flex items-center gap-1.5"><i class="fa-solid fa-users"></i> 30-Second CHW Door-to-Door Script</span>
-            <button onclick="copyToClipboard('chw-snippet')" class="text-xs text-slate-400 hover:text-white"><i class="fa-regular fa-copy"></i> Copy</button>
-          </div>
-          <p id="chw-snippet" class="text-xs font-mono bg-slate-800 p-3 rounded text-slate-300">
-            "Hi neighbor! The Bronx Mobile Health Van will be parked near our community center this Saturday from 9am to 3pm. Everything is free, no insurance needed."
-          </p>
-        </div>
+      <!-- Chat Input Box -->
+      <div class="p-3 bg-white border-t border-slate-200 flex items-center gap-2">
+        <input
+          id="copilot-input"
+          type="text"
+          placeholder="Ask a question about this schedule..."
+          onkeydown="if(event.key==='Enter') sendCopilotMessage()"
+          class="flex-1 text-xs bg-slate-50 border border-slate-300 rounded-xl px-3 py-2.5 focus:outline-none focus:border-emerald-600"
+        />
+        <button onclick="sendCopilotMessage()" class="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-3.5 py-2.5 rounded-xl transition">
+          <i class="fa-solid fa-paper-plane"></i>
+        </button>
       </div>
-    </div>
+    </aside>
 
-    <!-- ========================================== -->
-    <!-- TAB 4: BRIEFING & AUDIT TRAIL              -->
-    <!-- ========================================== -->
-    <div id="tab-briefing" class="tab-content space-y-6">
-      
-      <!-- Rubric Scoring Matrix Card -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-        <div class="flex justify-between items-center pb-3 border-b border-slate-100">
-          <div>
-            <h2 class="text-lg font-bold text-slate-900">Hackathon Judge Rubric Evaluation & Proofs</h2>
-            <p class="text-xs text-slate-500">Explicit verification of the 4 judge rubric criteria and self-correction loop.</p>
-          </div>
-          <span class="text-xs bg-emerald-100 text-emerald-800 px-3 py-1 rounded-full font-bold">4 / 4 CRITERIA SATISFIED</span>
-        </div>
+  </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
-          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-lg space-y-1.5">
-            <div class="font-bold text-slate-900 text-sm">1. Delete any agent, does it get worse?</div>
-            <p class="text-slate-600"><span class="font-semibold text-slate-800">Yes:</span> Without Planner, no kit customization or weather posture. Without Auditor, institutional traps (Rikers) are visited. Without Flyer Agent, community receives incomprehensible epidemiological jargon.</p>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-lg space-y-1.5">
-            <div class="font-bold text-slate-900 text-sm">2. Shared key in session.state?</div>
-            <p class="text-slate-600"><span class="font-semibold text-slate-800">Verified:</span> <code class="text-teal-700 bg-teal-50 px-1 py-0.5 rounded">session.state["proposed_schedule"]</code> written by PlannerSubAgent, evaluated and rejected/approved by AuditAccountabilitySubAgent, which writes <code class="text-teal-700 bg-teal-50 px-1 py-0.5 rounded">audit_verdict</code>.</p>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-lg space-y-1.5">
-            <div class="font-bold text-slate-900 text-sm">3. Genuine conflicting instructions?</div>
-            <p class="text-slate-600"><span class="font-semibold text-slate-800">Conflict:</span> ExclusiveFlyerAgent is forbidden from using clinical acronyms (FIPS, HPSA, SVI); DirectorBriefingAgent is strictly required to present statistical confidence intervals and multi-scale data caveats.</p>
-          </div>
-
-          <div class="bg-slate-50 border border-slate-200 p-3.5 rounded-lg space-y-1.5">
-            <div class="font-bold text-slate-900 text-sm">4. Rejected its own first answer?</div>
-            <p class="text-slate-600"><span class="font-semibold text-slate-800">Demonstrated:</span> On Iteration 1, Auditor rejected institutional outliers and HPSA concentration, returning status <code class="text-rose-700 bg-rose-50 px-1 py-0.5 rounded">REJECTED</code>. Planner re-scored and satisfied all rules on Iteration 2.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- Demographic Equity Ratios -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-        <h3 class="text-sm font-bold uppercase tracking-wider text-slate-700">Post-Hoc Demographic Equity Audit Ratios (vs. Bronx County Baseline)</h3>
-        <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
-          <div class="bg-teal-50 border border-teal-200 p-3 rounded-lg text-center">
-            <div class="text-2xl font-extrabold text-teal-800">95.7%</div>
-            <div class="text-xs text-teal-600 font-medium">Black & Hispanic Served</div>
-            <div class="text-[10px] text-teal-500 mt-1">vs 84.4% County Base (1.13x)</div>
-          </div>
-
-          <div class="bg-emerald-50 border border-emerald-200 p-3 rounded-lg text-center">
-            <div class="text-2xl font-extrabold text-emerald-800">1.60x</div>
-            <div class="text-xs text-emerald-600 font-medium">Poverty Concentration</div>
-            <div class="text-[10px] text-emerald-500 mt-1">61.3% in tracts vs 38.2% base</div>
-          </div>
-
-          <div class="bg-indigo-50 border border-indigo-200 p-3 rounded-lg text-center">
-            <div class="text-2xl font-extrabold text-indigo-800">1.54x</div>
-            <div class="text-xs text-indigo-600 font-medium">Uninsured Coverage Ratio</div>
-            <div class="text-[10px] text-indigo-500 mt-1">25.1% in tracts vs 16.3% base</div>
-          </div>
-
-          <div class="bg-violet-50 border border-violet-200 p-3 rounded-lg text-center">
-            <div class="text-2xl font-extrabold text-violet-800">4 / 4</div>
-            <div class="text-xs text-violet-600 font-medium">Distinct HPSA Zones</div>
-            <div class="text-[10px] text-violet-500 mt-1">Zero geographic clustering</div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Commissioner Executive Briefing -->
-      <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-6 space-y-4">
-        <div class="flex justify-between items-center pb-3 border-b border-slate-100">
-          <h3 class="text-sm font-bold uppercase tracking-wider text-slate-800">Full Health Commissioner & Evaluator Briefing</h3>
-          <button onclick="copyToClipboard('director-briefing-text')" class="text-xs text-slate-500 hover:text-slate-800"><i class="fa-regular fa-copy"></i> Copy Briefing</button>
-        </div>
-        <div id="director-briefing-text" class="text-xs text-slate-700 whitespace-pre-line font-mono bg-slate-50 p-4 rounded-lg border border-slate-200 max-h-96 overflow-y-auto leading-relaxed">
-          Loading executive briefing...
-        </div>
-      </div>
-
-    </div>
-
-  </main>
-
-  <!-- Deny Modal -->
-  <div id="deny-modal" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-center justify-center p-4">
-    <div class="bg-white rounded-2xl max-w-md w-full p-6 space-y-4 shadow-2xl border border-slate-200">
+  <!-- MODAL 1: Per-Stop Relocation (Human-in-the-Loop) -->
+  <div id="replan-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
       <div class="flex justify-between items-center">
-        <h3 class="text-lg font-bold text-slate-900 flex items-center gap-2">
-          <i class="fa-solid fa-triangle-exclamation text-rose-600"></i>
-          Deny Schedule (Human-in-the-Loop)
-        </h3>
-        <button onclick="closeDenyModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark text-lg"></i></button>
+        <h3 id="replan-modal-title" class="text-base font-extrabold text-slate-900">Relocate Saturday Stop</h3>
+        <button onclick="closeReplanStopModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
       </div>
-      <p class="text-xs text-slate-500">Provide a verbatim reason for rejecting this stop. The coordinator agent will log this action and trigger an automated re-siting cycle.</p>
-      
+      <p class="text-xs text-slate-600">If street construction or a local event blocks this corner, select a reason below and we will automatically assign the next highest-need accessible site.</p>
       <div class="space-y-3">
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Rejection Category</label>
-          <select id="deny-category" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 bg-slate-50">
-            <option value="ROAD_CONSTRUCTION">Road Construction / ConEd Utility Work</option>
-            <option value="COMMUNITY_EVENT">Community Event / Street Fair Conflict</option>
-            <option value="CAPACITY">Clinic Partner Capacity Exceeded</option>
-            <option value="CLEARANCE">Van Clearance / Parking Permit Deficit</option>
-            <option value="OTHER">Other Operational Constraint</option>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Reason Category</label>
+          <select id="replan-category-select" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2">
+            <option value="ROAD_CONSTRUCTION">ConEd Utility / Street Construction</option>
+            <option value="COMMUNITY_EVENT">Street Fair / Parade / Permit Conflict</option>
+            <option value="CLEARANCE">Curbside Van Parking Clearance Issue</option>
+            <option value="OTHER">Other Operational Adjustment</option>
           </select>
         </div>
         <div>
-          <label class="block text-xs font-semibold text-slate-700 mb-1">Verbatim Justification</label>
-          <textarea id="deny-reason" rows="3" class="w-full text-xs border border-slate-300 rounded-lg p-2.5 bg-slate-50" placeholder="e.g. ConEd emergency gas main replacement blocking curbside parking on Jerome Ave..."></textarea>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Coordinator Note</label>
+          <input id="replan-reason-input" type="text" placeholder="e.g., ConEd trench work blocking curb lane" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2" />
         </div>
       </div>
-
       <div class="flex justify-end gap-2 pt-2">
-        <button onclick="closeDenyModal()" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-lg">Cancel</button>
-        <button onclick="submitAdminDecision('DENY')" class="px-4 py-2 text-xs font-semibold text-white bg-rose-600 hover:bg-rose-500 rounded-lg shadow-sm">Submit Denial & Re-Plan</button>
+        <button onclick="closeReplanStopModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl">Cancel</button>
+        <button id="replan-submit-btn" onclick="submitReplanStop()" class="text-xs bg-amber-600 hover:bg-amber-500 text-white font-bold px-4 py-2 rounded-xl">Confirm &amp; Relocate Van</button>
       </div>
     </div>
   </div>
 
-  <!-- JavaScript Application Logic -->
-  <script>
-    let currentScheduleData = null;
-    let mapInstance = null;
+  <!-- MODAL 2: Generate New Monthly Deployment Plan -->
+  <div id="new-plan-modal" class="hidden fixed inset-0 bg-slate-900/60 z-50 flex items-center justify-center p-4">
+    <div class="bg-white rounded-2xl max-w-md w-full p-6 shadow-xl space-y-4">
+      <div class="flex justify-between items-center">
+        <h3 class="text-base font-extrabold text-slate-900">Create New Monthly Van Schedule</h3>
+        <button onclick="closeNewPlanModal()" class="text-slate-400 hover:text-slate-600"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+      <p class="text-xs text-slate-600">Generate a fresh 4-Saturday deployment plan across Bronx County with automated equity verification and bilingual flyers.</p>
+      <div class="space-y-3">
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Target Month</label>
+          <input id="new-plan-month" type="text" value="December 2026" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2" />
+        </div>
+        <div>
+          <label class="block text-xs font-bold text-slate-700 mb-1">Clinical Priority Focus (Optional)</label>
+          <input id="new-plan-focus" type="text" placeholder="e.g., Pediatric asthma & winter flu vaccinations" class="w-full text-xs border border-slate-300 rounded-xl px-3 py-2" />
+        </div>
+      </div>
+      <div class="flex justify-end gap-2 pt-2">
+        <button onclick="closeNewPlanModal()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold px-4 py-2 rounded-xl">Cancel</button>
+        <button id="new-plan-submit-btn" onclick="submitGenerateNewPlan()" class="text-xs bg-emerald-600 hover:bg-emerald-500 text-white font-bold px-4 py-2 rounded-xl">
+          <i class="fa-solid fa-wand-magic-sparkles mr-1.5"></i> Generate Audited Schedule
+        </button>
+      </div>
+    </div>
+  </div>
 
-    function switchTab(tabId) {
-      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
-      document.querySelectorAll('.tab-btn').forEach(el => {
-        el.classList.remove('border-teal-400', 'text-white');
-        el.classList.add('border-transparent', 'text-slate-400');
-      });
-
-      const targetTab = document.getElementById(`tab-${tabId}`);
-      const targetNav = document.getElementById(`nav-${tabId}`);
-      if (targetTab) targetTab.classList.add('active');
-      if (targetNav) {
-        targetNav.classList.add('border-teal-400', 'text-white');
-        targetNav.classList.remove('border-transparent', 'text-slate-400');
-      }
-
-      if (tabId === 'map-tab') {
-        setTimeout(initMap, 200);
-      }
-    }
-
-    async function loadSchedule() {
-      try {
-        const res = await fetch('/api/schedule/current');
-        if (!res.ok) throw new Error('Schedule not found');
-        const data = await res.json();
-        currentScheduleData = data;
-        renderDashboard(data);
-      } catch (err) {
-        console.error('Error fetching schedule:', err);
-      }
-    }
-
-    function renderDashboard(data) {
-      document.getElementById('sched-title').innerText = `${data.target_month} Mobile Care Deployment`;
-      const badge = document.getElementById('sched-status-badge');
-      badge.innerText = data.status;
-      badge.className = data.status === 'APPROVED' ? 'badge-approved text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider' : 'badge-outlier text-xs px-2.5 py-0.5 rounded-full font-bold uppercase tracking-wider';
-
-      if (data.summary) {
-        document.getElementById('sched-methodology').innerText = data.summary;
-      }
-
-      const container = document.getElementById('saturday-cards-container');
-      container.innerHTML = '';
-
-      data.stops.forEach((stop, idx) => {
-        const card = document.createElement('div');
-        card.className = 'bg-white rounded-xl shadow-sm border border-slate-200 p-5 space-y-4 hover:shadow-md transition';
-        
-        let kitsHtml = '';
-        if (stop.clinical_kits) {
-          for (const [k, v] of Object.entries(stop.clinical_kits)) {
-            kitsHtml += `<span class="bg-slate-100 text-slate-700 px-2 py-0.5 rounded text-[11px] font-medium border border-slate-200">${k.replace(/_/g, ' ')}: <strong>${v}</strong></span>`;
-          }
-        }
-
-        const subways = (stop.subway_lines || []).map(s => `<span class="bg-emerald-600 text-white font-bold px-1.5 py-0.5 rounded text-[10px]">${s}</span>`).join(' ');
-        const buses = (stop.bus_lines || []).map(b => `<span class="bg-sky-600 text-white font-medium px-1.5 py-0.5 rounded text-[10px]">${b}</span>`).join(' ');
-
-        card.innerHTML = `
-          <div class="flex justify-between items-start">
-            <div>
-              <span class="text-xs font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">SATURDAY ${stop.saturday_index} • ${stop.saturday_date}</span>
-              <h3 class="text-base font-bold text-slate-900 mt-1">${stop.landmark_name}</h3>
-              <p class="text-xs text-slate-500"><i class="fa-solid fa-location-dot text-rose-500 mr-1"></i> ${stop.street_intersection}</p>
-            </div>
-            <div class="text-right">
-              <span class="text-xs font-extrabold text-teal-900 bg-teal-100 px-2 py-1 rounded">Score: ${stop.composite_score}</span>
-              <div class="text-[10px] text-slate-400 mt-1">Tract: ${stop.geo_id}</div>
-            </div>
-          </div>
-
-          <div class="grid grid-cols-2 gap-2 text-xs bg-slate-50 p-2.5 rounded-lg border border-slate-100">
-            <div><span class="text-slate-500">HPSA Zone:</span> <strong class="text-slate-800">${stop.hpsa_name}</strong></div>
-            <div><span class="text-slate-500">HPSA Shortage:</span> <strong class="text-slate-800">${stop.hpsa_score}</strong></div>
-            <div><span class="text-slate-500">Uninsured Rate:</span> <strong class="text-slate-800">${stop.pct_uninsured}%</strong></div>
-            <div><span class="text-slate-500">Asthma Rate:</span> <strong class="text-slate-800">${stop.pct_asthma}%</strong></div>
-          </div>
-
-          <div class="text-xs space-y-1">
-            <div class="font-semibold text-slate-700 flex items-center gap-1.5">
-              <i class="fa-solid fa-cloud-sun text-amber-500"></i> Weather Posture:
-            </div>
-            <p class="text-slate-600 text-[11px] bg-amber-50 border border-amber-100 p-2 rounded">
-              ${stop.van_setup_mode}
-            </p>
-          </div>
-
-          <div class="text-xs space-y-1.5">
-            <div class="font-semibold text-slate-700 flex items-center gap-1.5">
-              <i class="fa-solid fa-kit-medical text-teal-600"></i> Clinical Kits Configured:
-            </div>
-            <div class="flex flex-wrap gap-1.5">
-              ${kitsHtml}
-            </div>
-          </div>
-
-          <div class="text-xs pt-2 border-t border-slate-100 flex items-center justify-between">
-            <div class="flex items-center gap-2">
-              <span class="text-[10px] text-slate-400">Transit:</span>
-              ${subways} ${buses}
-            </div>
-            <span class="text-[11px] text-teal-600 font-semibold">${stop.neighborhood}</span>
-          </div>
-        `;
-        container.appendChild(card);
-      });
-
-      // Populate Flyers
-      if (data.flyers && data.flyers.length > 0) {
-        document.getElementById('flyer-en-text').innerText = data.flyers[0].body_en || 'Flyers ready.';
-        document.getElementById('flyer-es-text').innerText = data.flyers[0].body_es || 'Volantes listos.';
-      }
-
-      // Populate Director Briefing
-      if (data.director_briefing) {
-        document.getElementById('director-briefing-text').innerText = data.director_briefing;
-      }
-    }
-
-    async function initMap() {
-      if (mapInstance) {
-        mapInstance.invalidateSize();
-        return;
-      }
-
-      mapInstance = L.map('map').setView([40.8448, -73.8648], 12);
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '&copy; OpenStreetMap contributors'
-      }).addTo(mapInstance);
-
-      try {
-        const res = await fetch('/api/geo/data');
-        const geo = await res.json();
-
-        // 1. Clinics
-        if (geo.care_sites) {
-          geo.care_sites.forEach(c => {
-            if (c.lat && c.lon) {
-              L.circleMarker([c.lat, c.lon], {
-                radius: 3,
-                color: '#0284c7',
-                fillColor: '#38bdf8',
-                fillOpacity: 0.6,
-                weight: 1
-              }).bindPopup(`<b>${c.name || 'Care Site'}</b><br>Type: ${c.facility_type || 'Clinic'}<br>Hours/Week: ${c.operating_hours_per_week || 40}`).addTo(mapInstance);
-            }
-          });
-        }
-
-        // 2. Rejected Outliers (Trap 2)
-        if (geo.institutional_outliers) {
-          geo.institutional_outliers.forEach(o => {
-            const outlierIcon = L.divIcon({
-              className: 'custom-icon',
-              html: `<div class="bg-rose-600 text-white rounded-full w-7 h-7 flex items-center justify-center font-bold text-xs shadow-lg border-2 border-white animate-bounce"><i class="fa-solid fa-ban"></i></div>`,
-              iconSize: [28, 28]
-            });
-            L.marker([o.lat, o.lon], { icon: outlierIcon }).addTo(mapInstance)
-              .bindPopup(`<div class="text-xs space-y-1">
-                <span class="badge-outlier px-2 py-0.5 rounded font-bold uppercase text-[10px]">TRAP 2 CAUGHT</span>
-                <div class="font-bold text-slate-900">${o.name}</div>
-                <div class="text-slate-600">Group Quarters: <strong>${o.pct_group_quarters}%</strong></div>
-                <div class="text-rose-700 italic">${o.rejection_reason}</div>
-              </div>`);
-          });
-        }
-
-        // 3. Active 4 Stops
-        if (currentScheduleData && currentScheduleData.stops) {
-          currentScheduleData.stops.forEach(s => {
-            const stopIcon = L.divIcon({
-              className: 'custom-icon',
-              html: `<div class="bg-teal-600 text-white rounded-full w-8 h-8 flex items-center justify-center font-bold text-sm shadow-xl border-2 border-white"><i class="fa-solid fa-van-shuttle"></i></div>`,
-              iconSize: [32, 32]
-            });
-            L.marker([s.lat, s.lon], { icon: stopIcon }).addTo(mapInstance)
-              .bindPopup(`<div class="text-xs space-y-1">
-                <span class="badge-approved px-2 py-0.5 rounded font-bold uppercase text-[10px]">SATURDAY ${s.saturday_index}</span>
-                <div class="font-bold text-slate-900">${s.landmark_name}</div>
-                <div class="text-slate-600">${s.street_intersection}</div>
-                <div class="text-teal-700 font-semibold">${s.hpsa_name} (Score: ${s.composite_score})</div>
-              </div>`).openPopup();
-          });
-        }
-      } catch (err) {
-        console.error('Error fetching geo data:', err);
-      }
-    }
-
-    function openDenyModal() {
-      document.getElementById('deny-modal').classList.remove('hidden');
-    }
-
-    function closeDenyModal() {
-      document.getElementById('deny-modal').classList.add('hidden');
-    }
-
-    async function submitAdminDecision(actionType) {
-      if (!currentScheduleData) return;
-      const category = actionType === 'DENY' ? document.getElementById('deny-category').value : null;
-      const reason = actionType === 'DENY' ? document.getElementById('deny-reason').value : 'Approved by Healthcare Lead';
-
-      try {
-        const res = await fetch('/api/admin/action', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            schedule_id: currentScheduleData.id,
-            action_type: actionType,
-            rejection_category: category,
-            rejection_reason: reason,
-            admin_user: 'admin@bronxhealth.org'
-          })
-        });
-        if (!res.ok) throw new Error('Failed to record action');
-        closeDenyModal();
-        await loadSchedule();
-        alert(`Admin action recorded: ${actionType}`);
-      } catch (err) {
-        alert('Error recording admin action: ' + err.message);
-      }
-    }
-
-    async function triggerGenerateSchedule() {
-      const btn = document.getElementById('btn-generate');
-      btn.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin"></i> Planning...';
-      btn.disabled = true;
-      try {
-        const res = await fetch('/api/schedule/generate', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ target_month: 'Next Month' })
-        });
-        if (!res.ok) throw new Error('Generation failed');
-        await loadSchedule();
-        alert('New 4-Saturday plan generated and audited by ADK pipeline!');
-      } catch (err) {
-        alert('Generation error: ' + err.message);
-      } finally {
-        btn.innerHTML = '<i class="fa-solid fa-arrows-rotate"></i> <span>Re-Plan with AI</span>';
-        btn.disabled = false;
-      }
-    }
-
-    function copyToClipboard(elementId) {
-      const text = document.getElementById(elementId).innerText;
-      navigator.clipboard.writeText(text);
-      alert('Copied to clipboard!');
-    }
-
-    // Initialize
-    document.addEventListener('DOMContentLoaded', loadSchedule);
-  </script>
+  <script src="/static/app.js"></script>
 </body>
 </html>

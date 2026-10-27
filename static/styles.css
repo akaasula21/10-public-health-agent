@@ -1,0 +1,60 @@
+/* Bronx Mobile Care Broker — Clinical & Public Health Styles */
+
+.tab-content {
+  display: none;
+}
+.tab-content.active {
+  display: block;
+}
+
+#map {
+  height: 580px;
+  width: 100%;
+  border-radius: 0.75rem;
+  z-index: 10;
+}
+
+/* Custom Scrollbar for Copilot Drawer */
+.copilot-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+.copilot-scroll::-webkit-scrollbar-track {
+  background: #f8fafc;
+}
+.copilot-scroll::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 3px;
+}
+
+/* Print Stylesheet for Community Notices (Tab 3) */
+@media print {
+  header,
+  nav,
+  #copilot-drawer,
+  #copilot-toggle-btn,
+  .no-print,
+  #toast-container,
+  #kpi-summary-bar {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+  main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  .tab-content {
+    display: none !important;
+  }
+  #tab-flyers {
+    display: block !important;
+  }
+  .print-sheet {
+    box-shadow: none !important;
+    border: 2px solid #0f172a !important;
+    page-break-inside: avoid;
+  }
+}

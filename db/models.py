@@ -14,10 +14,36 @@ from sqlalchemy import (
     String,
     Text,
     JSON,
+    CHAR,
 )
+from sqlalchemy.types import TypeDecorator
+from sqlalchemy.dialects.postgresql import UUID as PG_UUID
 from sqlalchemy.orm import relationship
 
 from db.database import Base
+
+
+class GUID(TypeDecorator):
+    """Platform-independent GUID type.
+    Uses PostgreSQL's UUID type, otherwise uses CHAR(36).
+    """
+    impl = CHAR
+    cache_ok = True
+
+    def load_dialect_impl(self, dialect):
+        if dialect.name == "postgresql":
+            return dialect.type_descriptor(PG_UUID(as_uuid=True))
+        return dialect.type_descriptor(CHAR(36))
+
+    def process_bind_param(self, value, dialect):
+        if value is None:
+            return value
+        if dialect.name == "postgresql":
+            return uuid.UUID(str(value)) if not isinstance(value, uuid.UUID) else value
+        return str(value)
+
+    def process_result_value(self, value, dialect):
+        return str(value) if value is not None else value
 
 
 def generate_uuid() -> str:
@@ -27,7 +53,7 @@ def generate_uuid() -> str:
 class Schedule(Base):
     __tablename__ = "schedules"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
+    id = Column(GUID(), primary_key=True, default=generate_uuid)
     county_fips = Column(String(5), nullable=False, default="36005")
     county_name = Column(String(100), nullable=False, default="Bronx County, NY")
     target_month = Column(String(50), nullable=False, default="Upcoming Month")
@@ -47,8 +73,8 @@ class Schedule(Base):
 class ScheduleStop(Base):
     __tablename__ = "schedule_stops"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    schedule_id = Column(String(36), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=generate_uuid)
+    schedule_id = Column(GUID(), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
     saturday_index = Column(Integer, nullable=False)  # 1 to 4
     saturday_date = Column(String(20), nullable=False)
     geo_id = Column(String(11), nullable=False)
@@ -81,9 +107,9 @@ class ScheduleStop(Base):
 class AdminAction(Base):
     __tablename__ = "admin_actions"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    schedule_id = Column(String(36), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
-    stop_id = Column(String(36), nullable=True)
+    id = Column(GUID(), primary_key=True, default=generate_uuid)
+    schedule_id = Column(GUID(), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
+    stop_id = Column(GUID(), nullable=True)
     action_type = Column(String(20), nullable=False)  # APPROVE, DENY, REPLAN
     rejection_category = Column(String(50), nullable=True)  # ROAD_CONSTRUCTION, COMMUNITY_EVENT, CAPACITY, OTHER
     rejection_reason = Column(Text, nullable=True)  # Admin's verbatim explanation
@@ -97,8 +123,8 @@ class AdminAction(Base):
 class AuditLog(Base):
     __tablename__ = "audit_logs"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    schedule_id = Column(String(36), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
+    id = Column(GUID(), primary_key=True, default=generate_uuid)
+    schedule_id = Column(GUID(), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
     iteration_number = Column(Integer, nullable=False, default=1)
     audit_status = Column(String(20), nullable=False)  # APPROVED, REJECTED
     institutional_outliers_detected = Column(JSON, nullable=True, default=list)
@@ -115,19 +141,69 @@ class AuditLog(Base):
 class OutreachFlyer(Base):
     __tablename__ = "outreach_flyers"
 
-    id = Column(String(36), primary_key=True, default=generate_uuid)
-    schedule_id = Column(String(36), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
-    stop_id = Column(String(36), ForeignKey("schedule_stops.id", ondelete="SET NULL"), nullable=True)
+    id = Column(GUID(), primary_key=True, default=generate_uuid)
+    schedule_id = Column(GUID(), ForeignKey("schedules.id", ondelete="CASCADE"), nullable=False)
+    stop_id = Column(GUID(), ForeignKey("schedule_stops.id", ondelete="SET NULL"), nullable=True)
     saturday_index = Column(Integer, nullable=False)
-    headline_en = Column(String(255), nullable=False)
-    body_en = Column(Text, nullable=False)
-    headline_es = Column(String(255), nullable=False)
-    body_es = Column(Text, nullable=False)
-    sms_en = Column(String(255), nullable=False)
-    sms_es = Column(String(255), nullable=False)
-    chw_script_en = Column(Text, nullable=False)
-    chw_script_es = Column(Text, nullable=False)
+    
+    # Database column mappings
+    flyer_headline_en = Column(String(255), nullable=True)
+    flyer_body_en = Column(Text, nullable=True)
+    flyer_headline_es = Column(String(255), nullable=True)
+    flyer_body_es = Column(Text, nullable=True)
+    sms_broadcast_en = Column(String(255), nullable=True)
+    sms_broadcast_es = Column(String(255), nullable=True)
+    chw_script_en = Column(Text, nullable=True)
+    chw_script_es = Column(Text, nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
+
+    @property
+    def headline_en(self) -> str:
+        return self.flyer_headline_en or ""
+
+    @headline_en.setter
+    def headline_en(self, val: str):
+        self.flyer_headline_en = val
+
+    @property
+    def body_en(self) -> str:
+        return self.flyer_body_en or ""
+
+    @body_en.setter
+    def body_en(self, val: str):
+        self.flyer_body_en = val
+
+    @property
+    def headline_es(self) -> str:
+        return self.flyer_headline_es or ""
+
+    @headline_es.setter
+    def headline_es(self, val: str):
+        self.flyer_headline_es = val
+
+    @property
+    def body_es(self) -> str:
+        return self.flyer_body_es or ""
+
+    @body_es.setter
+    def body_es(self, val: str):
+        self.flyer_body_es = val
+
+    @property
+    def sms_en(self) -> str:
+        return self.sms_broadcast_en or ""
+
+    @sms_en.setter
+    def sms_en(self, val: str):
+        self.sms_broadcast_en = val
+
+    @property
+    def sms_es(self) -> str:
+        return self.sms_broadcast_es or ""
+
+    @sms_es.setter
+    def sms_es(self, val: str):
+        self.sms_broadcast_es = val
 
     # Relationships
     schedule = relationship("Schedule", back_populates="flyers")

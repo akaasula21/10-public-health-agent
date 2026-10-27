@@ -18,18 +18,25 @@ from agent.agent import run_broker
 from db.database import get_db, init_db, engine
 from db.models import Schedule
 from db.repository import (
+    get_all_schedules,
     get_audit_logs,
     get_current_schedule,
     get_schedule_by_id,
     record_admin_action,
+    replan_schedule_stop,
     save_schedule_run,
 )
+from api.copilot import answer_copilot_query
 from api.schemas import (
     AdminActionRequest,
     AdminActionResponse,
     AuditLogResponse,
+    ChatRequest,
+    ChatResponse,
     GenerateScheduleRequest,
+    ReplanStopRequest,
     ScheduleResponse,
+    ScheduleSummaryResponse,
 )
 
 logger = logging.getLogger("broker.api")
@@ -77,7 +84,14 @@ def health_check():
     }
 
 
+@app.get("/api/schedules", response_model=List[ScheduleSummaryResponse])
+def list_schedules(db: Session = Depends(get_db)):
+    """Retrieve all deployment schedules (past and present) for the history switcher."""
+    return get_all_schedules(db)
+
+
 @app.get("/api/schedule/current", response_model=ScheduleResponse)
+@app.get("/api/schedule/latest", response_model=ScheduleResponse)
 def get_current(db: Session = Depends(get_db)):
     """Retrieve the active 4-Saturday deployment schedule."""
     schedule = get_current_schedule(db)
@@ -108,7 +122,12 @@ async def generate_schedule(req: GenerateScheduleRequest, db: Session = Depends(
     logger.info(f"Triggering ADK pipeline for {req.target_month}...")
 
     try:
-        final_state, events = await run_broker(prompt)
+        broker_res = await run_broker(prompt)
+        if isinstance(broker_res, tuple) and len(broker_res) == 2:
+            final_state, events = broker_res
+        else:
+            final_state = broker_res.get("session_state", broker_res)
+            events = broker_res.get("events", [])
     except Exception as e:
         logger.error(f"Error running ADK multi-agent pipeline: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"ADK Agent execution failed: {str(e)}")
@@ -154,6 +173,45 @@ def admin_action(req: AdminActionRequest, db: Session = Depends(get_db)):
         )
     except ValueError as e:
         raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/schedule/{schedule_id}/replan-stop/{stop_id}", response_model=ScheduleResponse)
+def replan_stop(
+    schedule_id: str,
+    stop_id: str,
+    req: ReplanStopRequest,
+    db: Session = Depends(get_db),
+):
+    """Human-in-the-Loop decision: Relocate a single Saturday stop due to street conditions."""
+    try:
+        updated_schedule = replan_schedule_stop(
+            db=db,
+            schedule_id=schedule_id,
+            stop_id=stop_id,
+            rejection_category=req.rejection_category,
+            rejection_reason=req.rejection_reason,
+            admin_user=req.admin_user,
+        )
+        return updated_schedule
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
+
+
+@app.post("/api/chat", response_model=ChatResponse)
+def chat_copilot(req: ChatRequest, db: Session = Depends(get_db)):
+    """AI Care Copilot: conversational clinical and operational questions grounded in the active deployment."""
+    schedule = None
+    if req.schedule_id:
+        schedule = get_schedule_by_id(db, req.schedule_id)
+    if not schedule:
+        schedule = get_current_schedule(db)
+
+    result = answer_copilot_query(query=req.query, schedule=schedule)
+    return ChatResponse(
+        reply=result["reply"],
+        schedule_id=result.get("schedule_id"),
+        citations=result.get("citations", []),
+    )
 
 
 @app.get("/api/audit/logs", response_model=List[AuditLogResponse])
