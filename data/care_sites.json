@@ -1,0 +1,2522 @@
+[
+  {
+    "site_name": "BRONXCARE HEALTH & WELLNESS CENTER",
+    "site_address": "199 Mount Eden Pkwy",
+    "site_city": "Bronx",
+    "lat": 40.8433,
+    "lon": -73.90977,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS HEALTH CENTER, INC.",
+    "site_address": "825 E 233rd St",
+    "site_city": "Bronx",
+    "lat": 40.89235,
+    "lon": -73.85353,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "888 Rev James A Polite Ave",
+    "site_city": "Bronx",
+    "lat": 40.81987,
+    "lon": -73.89875,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS HEALTH CENTER, INC.",
+    "site_address": "85 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.8547,
+    "lon": -73.91035,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "VOCATIONAL INSTRUCTION PROJECT COMM SRV INC",
+    "site_address": "1910 Arthur Ave",
+    "site_city": "Bronx",
+    "lat": 40.84552,
+    "lon": -73.89316,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MARTIN LUTHER KING JR HEALTH CENTER",
+    "site_address": "3674 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.83456,
+    "lon": -73.90365,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "890 Hunts Point Ave",
+    "site_city": "Bronx",
+    "lat": 40.81934,
+    "lon": -73.88938,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS",
+    "site_address": "1400 Blondell Ave",
+    "site_city": "Bronx",
+    "lat": 40.84271,
+    "lon": -73.84244,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MONTEFIORE MEDICAL CENTER",
+    "site_address": "111 E 210th St",
+    "site_city": "Bronx",
+    "lat": 40.87987,
+    "lon": -73.8799,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HUDSON RIVER HEALTHCARE",
+    "site_address": "2510 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.83927,
+    "lon": -73.84341,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS MED CLINIC AT SUSANS PLACE",
+    "site_address": "1921 Jerome Ave",
+    "site_city": "Bronx",
+    "lat": 40.8506,
+    "lon": -73.91069,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HEALTH CENTER, INC",
+    "site_address": "260 E 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86075,
+    "lon": -73.89594,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS PART OF THE SOLUTION",
+    "site_address": "2763 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.86586,
+    "lon": -73.88665,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PART OF THE SOLUTION HEALTH CENTER",
+    "site_address": "2759 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.86575,
+    "lon": -73.88656,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "LA CASA DE SALUD INC",
+    "site_address": "262 E 174th St",
+    "site_city": "Bronx",
+    "lat": 40.84447,
+    "lon": -73.90593,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS",
+    "site_address": "3600 Jerome Ave",
+    "site_city": "Bronx",
+    "lat": 40.88546,
+    "lon": -73.87896,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRIGHTPOINT HEALTH",
+    "site_address": "459 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81525,
+    "lon": -73.91531,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "VA HOSP",
+    "site_address": "130 W Kingsbridge Rd",
+    "site_city": "Bronx",
+    "lat": 40.86868,
+    "lon": -73.905,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PENINSULA  COMMUNITY HEALTH CENTER",
+    "site_address": "1967 Turnbull Ave",
+    "site_city": "Bronx",
+    "lat": 40.82363,
+    "lon": -73.85647,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "ST BARNABAS HOSPITAL",
+    "site_address": "4422 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.8533,
+    "lon": -73.89078,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "628 Tinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.81472,
+    "lon": -73.90545,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "ADOLESCENT HEALTH AND WELLNESS CENTER",
+    "site_address": "960 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.82197,
+    "lon": -73.89121,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HUB CENTER",
+    "site_address": "459 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81525,
+    "lon": -73.91531,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS - THE LIVING ROOM",
+    "site_address": "800 Barretto St",
+    "site_city": "Bronx",
+    "lat": 40.81683,
+    "lon": -73.88982,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HEALTH CENTER INC",
+    "site_address": "260 E 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86075,
+    "lon": -73.89594,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "1065 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.82505,
+    "lon": -73.89213,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THIRD AVENUE FAMILY HEALTH CENTER",
+    "site_address": "2604 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.81196,
+    "lon": -73.92523,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "1001 Jennings St",
+    "site_city": "Bronx",
+    "lat": 40.83122,
+    "lon": -73.88673,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PLAZA DEL CASTILLO HEALTH CENTER",
+    "site_address": "1515 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.83322,
+    "lon": -73.89062,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "271 E 138th St",
+    "site_city": "Bronx",
+    "lat": 40.8109,
+    "lon": -73.9258,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS HEALTH CENTER",
+    "site_address": "250 E 183rd St",
+    "site_city": "Bronx",
+    "lat": 40.85696,
+    "lon": -73.89879,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THE FLOATING HOSPITAL INC",
+    "site_address": "285 E 171st St",
+    "site_city": "Bronx",
+    "lat": 40.83903,
+    "lon": -73.91036,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS",
+    "site_address": "528 Morris Ave",
+    "site_city": "Bronx",
+    "lat": 40.81697,
+    "lon": -73.92269,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "1300 Boynton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83182,
+    "lon": -73.8787,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "866 E Tremont Ave",
+    "site_city": "Bronx",
+    "lat": 40.84292,
+    "lon": -73.88635,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THE INSTITUTE FOR FAM HLTH CTR FOR COUNSELING",
+    "site_address": "1420 Ferris Pl STE 1",
+    "site_city": "Bronx",
+    "lat": 40.83943,
+    "lon": -73.84142,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "TREMONT COMMUNITY HEALTH CENTER OF EXCELLENCE",
+    "site_address": "1920 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.84786,
+    "lon": -73.90063,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHT CENTER",
+    "site_address": "1227 Edward L Grant Hwy",
+    "site_city": "Bronx",
+    "lat": 40.83666,
+    "lon": -73.92267,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRIGHTPOINT HEALTH",
+    "site_address": "1543 Inwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.844,
+    "lon": -73.91671,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "SUN RIVER HEALTHH INC",
+    "site_address": "820 Saint Anns Ave",
+    "site_city": "Bronx",
+    "lat": 40.82108,
+    "lon": -73.90973,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THE INSTITUTE OF FAMILY HEALTH",
+    "site_address": "1420 Ferris Pl",
+    "site_city": "Bronx",
+    "lat": 40.83943,
+    "lon": -73.84142,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MONTEFIORE MEDICAL CENTER T C",
+    "site_address": "111 E 210th St",
+    "site_city": "Bronx",
+    "lat": 40.87987,
+    "lon": -73.8799,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRISANIA DIAGNOSTIC & TREATMENT CENTER",
+    "site_address": "1225 Gerard Ave",
+    "site_city": "Bronx",
+    "lat": 40.83603,
+    "lon": -73.92008,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "JAMES MONROE ANNEX",
+    "site_address": "1551 E 172nd St",
+    "site_city": "Bronx",
+    "lat": 40.83199,
+    "lon": -73.87754,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HEALTH CENTER",
+    "site_address": "2016 Bronxdale Ave",
+    "site_city": "Bronx",
+    "lat": 40.85061,
+    "lon": -73.86565,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "NYC HEALTH AND HOSPITAL CORPORATION",
+    "site_address": "1012 E Gun Hill Rd",
+    "site_city": "Bronx",
+    "lat": 40.87428,
+    "lon": -73.85767,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX PSYCHIATRIC CENTER",
+    "site_address": "1500 Waters Pl",
+    "site_city": "Bronx",
+    "lat": 40.84879,
+    "lon": -73.83936,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "METRO COMMUNITY HEALTH CENTER",
+    "site_address": "979 Cross Bronx Expy",
+    "site_city": "Bronx",
+    "lat": 40.83912,
+    "lon": -73.88279,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX CARE AT 3RD AVENUE",
+    "site_address": "2737 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.81454,
+    "lon": -73.92125,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "1290 Spofford Ave",
+    "site_city": "Bronx",
+    "lat": 40.81424,
+    "lon": -73.88689,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "INSTITUTE FOR URBAN FAMILY HEALTH",
+    "site_address": "1894 Walton Ave",
+    "site_city": "Bronx",
+    "lat": 40.8496,
+    "lon": -73.90915,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "TREMONT HEALTH CENTER",
+    "site_address": "1880 Bathgate Ave",
+    "site_city": "Bronx",
+    "lat": 40.84628,
+    "lon": -73.89723,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "4419 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.85196,
+    "lon": -73.89312,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "JACOBI MEDICAL CENTER",
+    "site_address": "1400 Pelham Pkwy S",
+    "site_city": "Bronx",
+    "lat": 40.85711,
+    "lon": -73.84745,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX CARE OGDEN FAM MED AND DENTAL CTR",
+    "site_address": "1067 Ogden Ave",
+    "site_city": "Bronx",
+    "lat": 40.83491,
+    "lon": -73.92843,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "COMMUNITY HEALTH PROJECT INC",
+    "site_address": "3144 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.82223,
+    "lon": -73.91056,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "DAMIAN FAMILY CARE CENTERS INC",
+    "site_address": "1381 University Ave",
+    "site_city": "Bronx",
+    "lat": 40.84278,
+    "lon": -73.92575,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "INSTITUTE FOR FAMILY HEALTH",
+    "site_address": "731 White Plains Rd",
+    "site_city": "Bronx",
+    "lat": 40.82035,
+    "lon": -73.85814,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS 9361",
+    "site_address": "1122 Franklin Ave",
+    "site_city": "Bronx",
+    "lat": 40.82818,
+    "lon": -73.90574,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN",
+    "site_address": "730 Bryant Ave",
+    "site_city": "Bronx",
+    "lat": 40.81546,
+    "lon": -73.88556,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PROJECT RENEWAL INC",
+    "site_address": "4380 Bronx Blvd",
+    "site_city": "Bronx",
+    "lat": 40.89924,
+    "lon": -73.85798,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "INSTITUTE FOR URBAN FAMILY HEALTH",
+    "site_address": "130 W Tremont Ave",
+    "site_city": "Bronx",
+    "lat": 40.84993,
+    "lon": -73.9145,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS 9367",
+    "site_address": "691 E 138th St",
+    "site_city": "Bronx",
+    "lat": 40.8053,
+    "lon": -73.91343,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS HEALTH CENTER, INC.",
+    "site_address": "1 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.85399,
+    "lon": -73.90745,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "RIVER AVENUE HEALTH CENTER",
+    "site_address": "880 River Ave",
+    "site_city": "Bronx",
+    "lat": 40.82839,
+    "lon": -73.92543,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CALVARY HOSPITAL INC",
+    "site_address": "1740 Eastchester Rd",
+    "site_city": "Bronx",
+    "lat": 40.84781,
+    "lon": -73.84426,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HLTH CTR GRAND CONCOURSE",
+    "site_address": "2021 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.85198,
+    "lon": -73.90457,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS 233RD STREET",
+    "site_address": "70 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.85441,
+    "lon": -73.91027,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX DENTAL CARE",
+    "site_address": "1775 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.84635,
+    "lon": -73.91003,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "STARHILL CLINIC",
+    "site_address": "1600 Macombs Rd",
+    "site_city": "Bronx",
+    "lat": 40.84585,
+    "lon": -73.91633,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRIGHTPOINT HEALTH  AT CITIWIDE",
+    "site_address": "226 E 144th St",
+    "site_city": "Bronx",
+    "lat": 40.81572,
+    "lon": -73.92547,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS",
+    "site_address": "691 E 138th St",
+    "site_city": "Bronx",
+    "lat": 40.8053,
+    "lon": -73.91343,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "ST LAWRENCE COMMUNITY HEALTH CENTER",
+    "site_address": "1764-1766 LAWRENCE AVENUE",
+    "site_city": "Bronx",
+    "lat": 40.82924,
+    "lon": -73.87121,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "SEGUNDO RUIZ BELVIS D & T CENTER",
+    "site_address": "545 E 142nd St",
+    "site_city": "Bronx",
+    "lat": 40.80987,
+    "lon": -73.91581,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BORICUA COMM HEALTH CENTER",
+    "site_address": "3209 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.82317,
+    "lon": -73.90948,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN INC",
+    "site_address": "984 Faile St",
+    "site_city": "Bronx",
+    "lat": 40.82232,
+    "lon": -73.88923,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "INSTITUTE FOR URBAN FAMILY HEALTH",
+    "site_address": "50 E 168th St # 98",
+    "site_city": "Bronx",
+    "lat": 40.83649,
+    "lon": -73.91904,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THE URBAN HEALTH PLAN",
+    "site_address": "900 Tinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.82159,
+    "lon": -73.90319,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HEALTH PLAN, X158",
+    "site_address": "800 Home St",
+    "site_city": "Bronx",
+    "lat": 40.82776,
+    "lon": -73.90067,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "LINCOLN MEDICAL & MENTAL HEALTH CENTER",
+    "site_address": "234 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81754,
+    "lon": -73.9241,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HUDSON RIVER HEATHCARE INC",
+    "site_address": "226 E 144th St",
+    "site_city": "Bronx",
+    "lat": 40.81572,
+    "lon": -73.92547,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MORRIS HEIGHTS HEALTH CENTER, INC.",
+    "site_address": "779 Melrose Ave",
+    "site_city": "Bronx",
+    "lat": 40.8222,
+    "lon": -73.91509,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "ACCESS COMMUNITY HEALTH CENTER",
+    "site_address": "1500 Pelham Pkwy S",
+    "site_city": "Bronx",
+    "lat": 40.85705,
+    "lon": -73.8433,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HEALTH CENTER, INC",
+    "site_address": "4487 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.8534,
+    "lon": -73.89201,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "FULTON FAMILY MEDICINE CENTER",
+    "site_address": "1276 Fulton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83166,
+    "lon": -73.90353,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "SUN RIVER HEALTH INC.",
+    "site_address": "4377 Bronx Blvd",
+    "site_city": "Bronx",
+    "lat": 40.89963,
+    "lon": -73.8582,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX CARE MID BX DESPARADOS FAM PRACTICE",
+    "site_address": "1690 Bryant Ave",
+    "site_city": "Bronx",
+    "lat": 40.83579,
+    "lon": -73.88538,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMMUNITY HEALTH CENTER, INC",
+    "site_address": "1 Fordham Plz",
+    "site_city": "Bronx",
+    "lat": 40.86077,
+    "lon": -73.89011,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRIGHTPOINT WESTCHESTER SQUARE CLINIC",
+    "site_address": "2510 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.83927,
+    "lon": -73.84341,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "COMMUNITY HEALTHCARE NETWORK INC",
+    "site_address": "975 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.8231,
+    "lon": -73.89533,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "THE INSTITUTE FOR FAMILY HEALTH",
+    "site_address": "1025 Morrison Ave",
+    "site_city": "Bronx",
+    "lat": 40.82502,
+    "lon": -73.87377,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "VOCATIONAL INSTRUCTION PROJECT COMMUNITY SERVICES",
+    "site_address": "1910 Arthur Ave",
+    "site_city": "Bronx",
+    "lat": 40.84552,
+    "lon": -73.89316,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CARE FOR THE HOMELESS 9368",
+    "site_address": "1605 Nelson Ave",
+    "site_city": "Bronx",
+    "lat": 40.84632,
+    "lon": -73.91965,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONXCARE HOSPITAL CENTER",
+    "site_address": "1276 Fulton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83166,
+    "lon": -73.90353,
+    "site_category": "Hospital",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BELLA VISTA COMM HEALTH CENTER",
+    "site_address": "882 Hunts Point Ave",
+    "site_city": "Bronx",
+    "lat": 40.81914,
+    "lon": -73.88926,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX CARE AT POE MED AND DENTA CTR",
+    "site_address": "2432 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.86057,
+    "lon": -73.89778,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HUDSON RIVER HEALTHCARE",
+    "site_address": "1545 Inwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.84409,
+    "lon": -73.91652,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "AHRC HEALTH CARE INC 6606",
+    "site_address": "1420 Ferris Pl",
+    "site_city": "Bronx",
+    "lat": 40.83943,
+    "lon": -73.84142,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "INWOOD CLINIC",
+    "site_address": "1543 Inwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.844,
+    "lon": -73.91671,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BRONX CARE CROTONA PARK FAMILY PRACTICE",
+    "site_address": "1591 Fulton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83895,
+    "lon": -73.89939,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION COMM HEALTH CENTER",
+    "site_address": "2101 Quarry Rd",
+    "site_city": "Bronx",
+    "lat": 40.85197,
+    "lon": -73.89156,
+    "site_category": "FQHC",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UCHC Mobile Medical Van Site",
+    "site_address": "260 E 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86075,
+    "lon": -73.89594,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 8.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Jerome Avenue Men's Shelter Health Center",
+    "site_address": "3600 Jerome Ave",
+    "site_city": "Bronx",
+    "lat": 40.88546,
+    "lon": -73.87896,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 16.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Archcare - St. Vincent de Paul Residence",
+    "site_address": "900 Intervale Ave",
+    "site_city": "Bronx",
+    "lat": 40.81934,
+    "lon": -73.89584,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 24.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "James Kieran School Based Health Center",
+    "site_address": "1025 Morrison Ave",
+    "site_city": "Bronx",
+    "lat": 40.82502,
+    "lon": -73.87377,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 35.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bronx Medical and Wellness Center",
+    "site_address": "1227 Edward L Grant Hwy",
+    "site_city": "Bronx",
+    "lat": 40.83657,
+    "lon": -73.92257,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 39.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mott Haven Family Health Center",
+    "site_address": "427 Grand Concourse BLDG",
+    "site_city": "Bronx",
+    "lat": 40.81672,
+    "lon": -73.9283,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bronx Regional High School",
+    "site_address": "979 Rogers Pl",
+    "site_city": "Bronx",
+    "lat": 40.82285,
+    "lon": -73.89798,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MS 174",
+    "site_address": "456 White Plains Rd",
+    "site_city": "Bronx",
+    "lat": 40.8147,
+    "lon": -73.85629,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "VIP Satellite",
+    "site_address": "1807 Clinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.84273,
+    "lon": -73.89227,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Ryan Health Mobile Health Center",
+    "site_address": "1480 Sheridan Expy",
+    "site_city": "Bronx",
+    "lat": 40.82981,
+    "lon": -73.88511,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "The Grace Dodge Campus",
+    "site_address": "2474 Crotona Ave",
+    "site_city": "Bronx",
+    "lat": 40.85531,
+    "lon": -73.8827,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "The Marie Curie School for Medicine, Nursing, and Health Professions",
+    "site_address": "120 W 231st St",
+    "site_city": "Bronx",
+    "lat": 40.87595,
+    "lon": -73.90143,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MS 145",
+    "site_address": "1002 Teller Ave",
+    "site_city": "Bronx",
+    "lat": 40.82782,
+    "lon": -73.91446,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "The Living Room",
+    "site_address": "800 Barretto St",
+    "site_city": "Bronx",
+    "lat": 40.81683,
+    "lon": -73.88982,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Morris Avenue Health Center",
+    "site_address": "528 Morris Ave",
+    "site_city": "Bronx",
+    "lat": 40.81697,
+    "lon": -73.92269,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Pediatric Specialty Center",
+    "site_address": "1685 Morris Ave",
+    "site_city": "Bronx",
+    "lat": 40.84412,
+    "lon": -73.9096,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "TapCo Theater Arts Production Co",
+    "site_address": "2225 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.85479,
+    "lon": -73.89675,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Fannie Lou Hamer M.S./P.S. 66",
+    "site_address": "1001 Jennings St",
+    "site_city": "Bronx",
+    "lat": 40.83122,
+    "lon": -73.88673,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Tremont Health Center",
+    "site_address": "1880 Bathgate Ave",
+    "site_city": "Bronx",
+    "lat": 40.84628,
+    "lon": -73.89723,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Care Found Here: Blondell Health Center",
+    "site_address": "1400 Blondell Ave",
+    "site_city": "Bronx",
+    "lat": 40.84271,
+    "lon": -73.84244,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Third Avenue Family Health Center",
+    "site_address": "2604 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.81196,
+    "lon": -73.92523,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "JHS 162 - Lola Rodriguez de Tio (x162 Campus)",
+    "site_address": "600 Saint Anns Ave",
+    "site_city": "Bronx",
+    "lat": 40.81497,
+    "lon": -73.91229,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "IS 98",
+    "site_address": "1619 Boston Rd",
+    "site_city": "Bronx",
+    "lat": 40.83607,
+    "lon": -73.8906,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Health Center at Gunhill",
+    "site_address": "1012 E Gun Hill Rd",
+    "site_city": "Bronx",
+    "lat": 40.87428,
+    "lon": -73.85767,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "UNION Mobile Dental Unit",
+    "site_address": "260 E 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86075,
+    "lon": -73.89594,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "James Monroe Annex",
+    "site_address": "1551 E 172nd St",
+    "site_city": "Bronx",
+    "lat": 40.83199,
+    "lon": -73.87754,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 198",
+    "site_address": "1180 Tinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.82872,
+    "lon": -73.90045,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mott Hall Campus",
+    "site_address": "250 E 164th St",
+    "site_city": "Bronx",
+    "lat": 40.82834,
+    "lon": -73.91728,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Neurology",
+    "site_address": "1650 Selwyn Ave, Apartment 1 B",
+    "site_city": "Bronx",
+    "lat": 40.84362,
+    "lon": -73.91026,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Park Tree Community Health Center",
+    "site_address": "866 E Tremont Ave",
+    "site_city": "Bronx",
+    "lat": 40.84292,
+    "lon": -73.88635,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "JHS 151",
+    "site_address": "250 Thurman Munson Way",
+    "site_city": "Bronx",
+    "lat": 40.82303,
+    "lon": -73.92138,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 55 Benjamin Franklin",
+    "site_address": "450 Saint Pauls Pl",
+    "site_city": "Bronx",
+    "lat": 40.83614,
+    "lon": -73.90456,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "IS 217",
+    "site_address": "977 Fox St",
+    "site_city": "Bronx",
+    "lat": 40.82209,
+    "lon": -73.89404,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Morris High School Campus",
+    "site_address": "1110 Boston Rd",
+    "site_city": "Bronx",
+    "lat": 40.82727,
+    "lon": -73.90455,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Union Community Health Center #6",
+    "site_address": "2016 Bronxdale Ave",
+    "site_city": "Bronx",
+    "lat": 40.85061,
+    "lon": -73.86565,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "South Bronx Health Center",
+    "site_address": "1002 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.82359,
+    "lon": -73.89353,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Institute for Family Health at Westchester Square",
+    "site_address": "1420 Ferris Pl",
+    "site_city": "Bronx",
+    "lat": 40.83943,
+    "lon": -73.84142,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Dr. Martin Luther King Jr. @ 174th Street Medical Practice",
+    "site_address": "961 E 174th St",
+    "site_city": "Bronx",
+    "lat": 40.83792,
+    "lon": -73.88371,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Sun River Health Bronx Blvd",
+    "site_address": "4377 Bronx Blvd",
+    "site_city": "Bronx",
+    "lat": 40.89963,
+    "lon": -73.8582,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 43.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Callen-Lorde Bronx",
+    "site_address": "555 Bergen Ave",
+    "site_city": "Bronx",
+    "lat": 40.81596,
+    "lon": -73.91651,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 44.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Marble Hill Family Practice",
+    "site_address": "5525 Broadway",
+    "site_city": "Bronx",
+    "lat": 40.87758,
+    "lon": -73.90599,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "VIDA Guidance Center",
+    "site_address": "4419 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.85196,
+    "lon": -73.89312,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "West Farm Family Practice II",
+    "site_address": "2175 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.83429,
+    "lon": -73.85239,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Samaritan Daytop Health - Richard Pruss Health Center",
+    "site_address": "362 E 148th St",
+    "site_city": "Bronx",
+    "lat": 40.81572,
+    "lon": -73.91959,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Metro Community Health Centers - Bronx",
+    "site_address": "979 Cross Bronx Expy",
+    "site_city": "Bronx",
+    "lat": 40.83948,
+    "lon": -73.88502,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Samaritan Daytop Health, Inc",
+    "site_address": "362 E 148th St",
+    "site_city": "Bronx",
+    "lat": 40.81572,
+    "lon": -73.91959,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "West Farms Family Practice",
+    "site_address": "1825 Boston Rd",
+    "site_city": "Bronx",
+    "lat": 40.83921,
+    "lon": -73.88569,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Psychiatric Adult Outpatient Practice 1",
+    "site_address": "1276 Fulton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83166,
+    "lon": -73.90353,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Casa Maria Community Health Center",
+    "site_address": "324 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.8167,
+    "lon": -73.92068,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 47.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 25 - The Bilingual School",
+    "site_address": "811 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81271,
+    "lon": -73.90573,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 48.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Boricua Community Health Center",
+    "site_address": "3209 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.82317,
+    "lon": -73.90948,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 49.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Sun River Health St. Ann\u2019s Ave",
+    "site_address": "820 Saint Anns Ave",
+    "site_city": "Bronx",
+    "lat": 40.82108,
+    "lon": -73.90973,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 50.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Ana's Place",
+    "site_address": "4380 Bronx Blvd",
+    "site_city": "Bronx",
+    "lat": 40.89924,
+    "lon": -73.85798,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 50.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Tres Puentes",
+    "site_address": "271 E 138th St",
+    "site_city": "Bronx",
+    "lat": 40.8109,
+    "lon": -73.9258,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 50.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "770 East 176 Street",
+    "site_address": "770 E 176th St",
+    "site_city": "Bronx",
+    "lat": 40.84227,
+    "lon": -73.89007,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 51.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Montefiore Med Group-Williamsbridge",
+    "site_address": "3011 Boston Rd",
+    "site_city": "Bronx",
+    "lat": 40.87,
+    "lon": -73.85722,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 51.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Claremont Family Health Center",
+    "site_address": "262 E 174th St",
+    "site_city": "Bronx",
+    "lat": 40.84447,
+    "lon": -73.90593,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 52.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Callen-Lorde Bronx",
+    "site_address": "3144 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.82223,
+    "lon": -73.91056,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 52.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Segundo Ruiz Belvis Diagnostic and Treatment Center",
+    "site_address": "545 E 142nd St",
+    "site_city": "Bronx",
+    "lat": 40.80987,
+    "lon": -73.91581,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 53.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Clay Avenue Health Center, Floor 1",
+    "site_address": "1776 Clay Ave",
+    "site_city": "Bronx",
+    "lat": 40.84614,
+    "lon": -73.90431,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 53.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Family Health Center",
+    "site_address": "1 Fordham Plz",
+    "site_city": "Bronx",
+    "lat": 40.86077,
+    "lon": -73.89011,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 54.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Center for Physical Rehabilitation",
+    "site_address": "1775 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.84635,
+    "lon": -73.91003,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 56.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Tremont Community Health Center of Excellence",
+    "site_address": "1920 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.84786,
+    "lon": -73.90063,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 58.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Sun River Health The Hub",
+    "site_address": "459 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81525,
+    "lon": -73.91531,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 58.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Sun River Health Inwood Health Center",
+    "site_address": "1545 Inwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.84409,
+    "lon": -73.91652,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 60.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Omega Health Urgent Care",
+    "site_address": "1 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.85399,
+    "lon": -73.90745,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 60.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Sun River Health Westchester Square Health Center",
+    "site_address": "2510 Westchester Ave, Suite 202",
+    "site_city": "Bronx",
+    "lat": 40.83927,
+    "lon": -73.84341,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 62.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Morrisania D&TC",
+    "site_address": "1225 Gerard Ave",
+    "site_city": "Bronx",
+    "lat": 40.83603,
+    "lon": -73.92008,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 67.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HELP CROTONA",
+    "site_address": "785 Crotona Park N",
+    "site_city": "Bronx",
+    "lat": 40.84066,
+    "lon": -73.89115,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 8.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Casa Rita (Women in Need)",
+    "site_address": "391 E 149th St",
+    "site_city": "Bronx",
+    "lat": 40.81637,
+    "lon": -73.91815,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 12.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC at St Ann's",
+    "site_address": "625 E 137th St",
+    "site_city": "Bronx",
+    "lat": 40.80546,
+    "lon": -73.91605,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 24.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "HELP MORRIS",
+    "site_address": "285 E 171st St",
+    "site_city": "Bronx",
+    "lat": 40.83903,
+    "lon": -73.91036,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 24.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Jackson Avenue Family Residence",
+    "site_address": "691 E 138th St",
+    "site_city": "Bronx",
+    "lat": 40.8053,
+    "lon": -73.91343,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 24.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC at Walton",
+    "site_address": "25 E 183rd St",
+    "site_city": "Bronx",
+    "lat": 40.8586,
+    "lon": -73.90304,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 38.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC at Melrose",
+    "site_address": "779 Melrose Ave",
+    "site_city": "Bronx",
+    "lat": 40.8222,
+    "lon": -73.91509,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 39.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "P.S. 48",
+    "site_address": "1290 Spofford Ave",
+    "site_city": "Bronx",
+    "lat": 40.81424,
+    "lon": -73.88689,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mobile Medical Clinic 3",
+    "site_address": "853 Longwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.81939,
+    "lon": -73.90104,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "X-158",
+    "site_address": "800 Home St",
+    "site_city": "Bronx",
+    "lat": 40.82776,
+    "lon": -73.90067,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PART OF THE SOLUTION",
+    "site_address": "2759 Webster Ave",
+    "site_city": "Bronx",
+    "lat": 40.86575,
+    "lon": -73.88656,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "SCHOOL BASED HLTH CTR - MS 399",
+    "site_address": "120 E 184th St",
+    "site_city": "Bronx",
+    "lat": 40.85962,
+    "lon": -73.90043,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 179/369 School Based Health Center",
+    "site_address": "468 E 140th St",
+    "site_city": "Bronx",
+    "lat": 40.80941,
+    "lon": -73.91987,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Health Opportunities HS",
+    "site_address": "350 Gerard Ave",
+    "site_city": "Bronx",
+    "lat": 40.81555,
+    "lon": -73.93044,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 396/ MS390",
+    "site_address": "1930 Andrews Ave",
+    "site_city": "Bronx",
+    "lat": 40.85457,
+    "lon": -73.91314,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 75",
+    "site_address": "984 Faile St",
+    "site_city": "Bronx",
+    "lat": 40.82232,
+    "lon": -73.88923,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "CIS 303: Leadership & Community Service Academy/232",
+    "site_address": "1700 Macombs Rd",
+    "site_city": "Bronx",
+    "lat": 40.8495,
+    "lon": -73.91575,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "M.S. 424",
+    "site_address": "730 Bryant Ave",
+    "site_city": "Bronx",
+    "lat": 40.81546,
+    "lon": -73.88556,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Albert Tuitt Educational Campus",
+    "site_address": "921 E 228th St",
+    "site_city": "Bronx",
+    "lat": 40.88795,
+    "lon": -73.85269,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Banana Kelly HS",
+    "site_address": "965 Longwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.81761,
+    "lon": -73.89799,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mobile Medical Clinic 1",
+    "site_address": "853 Longwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.81939,
+    "lon": -73.90104,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Monroe Academy",
+    "site_address": "1300 Boynton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83182,
+    "lon": -73.8787,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Health Integrated Services System Inc.",
+    "site_address": "1650 Selwyn Ave, Apartment 11 H",
+    "site_city": "Bronx",
+    "lat": 40.84362,
+    "lon": -73.91026,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 161 Ponce de Leon",
+    "site_address": "628 Tinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.81472,
+    "lon": -73.90545,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "International Community HS",
+    "site_address": "345 Brook Ave",
+    "site_city": "Bronx",
+    "lat": 40.81024,
+    "lon": -73.91787,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 90",
+    "site_address": "1116 Sheridan Ave",
+    "site_city": "Bronx",
+    "lat": 40.83206,
+    "lon": -73.91773,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS/MS 279",
+    "site_address": "2100 Walton Ave",
+    "site_city": "Bronx",
+    "lat": 40.85477,
+    "lon": -73.9051,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS 333/PS 335",
+    "site_address": "888 Rev James a Polite Ave",
+    "site_city": "Bronx",
+    "lat": 40.81987,
+    "lon": -73.89875,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PUBLIC SCHOOL 306(SBHC)",
+    "site_address": "40 W Tremont Ave",
+    "site_city": "Bronx",
+    "lat": 40.85156,
+    "lon": -73.91128,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "JANE ADAMS VOCATIONAL HS",
+    "site_address": "900 Tinton Ave",
+    "site_city": "Bronx",
+    "lat": 40.82159,
+    "lon": -73.90319,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "SBHC CES 126",
+    "site_address": "175 W 166th St",
+    "site_city": "Bronx",
+    "lat": 40.83596,
+    "lon": -73.92839,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bronx Health Collective @ 853 Longwood Ave",
+    "site_address": "853 Longwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.81939,
+    "lon": -73.90104,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Tremont Health Center",
+    "site_address": "4215 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.84687,
+    "lon": -73.89624,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS/MS 29",
+    "site_address": "758 Courtlandt Ave",
+    "site_city": "Bronx",
+    "lat": 40.82173,
+    "lon": -73.91715,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PS/MS 382",
+    "site_address": "125 E 181st St",
+    "site_city": "Bronx",
+    "lat": 40.85503,
+    "lon": -73.90336,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Harry S. Truman HS",
+    "site_address": "750 Baychester Ave",
+    "site_city": "Bronx",
+    "lat": 40.87412,
+    "lon": -73.83312,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mobile Medical Clinic 2",
+    "site_address": "853 Longwood Ave",
+    "site_city": "Bronx",
+    "lat": 40.81939,
+    "lon": -73.90104,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Taft High School",
+    "site_address": "240 E 172nd St",
+    "site_city": "Bronx",
+    "lat": 40.84003,
+    "lon": -73.91117,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "South Bronx Campus",
+    "site_address": "701 Saint Anns Ave",
+    "site_city": "Bronx",
+    "lat": 40.81833,
+    "lon": -73.91118,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Stevenson High School Campus School-based Health Center",
+    "site_address": "1980 Lafayette Ave",
+    "site_city": "Bronx",
+    "lat": 40.82216,
+    "lon": -73.85588,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Walton Campus",
+    "site_address": "2780 Reservoir Ave",
+    "site_city": "Bronx",
+    "lat": 40.87069,
+    "lon": -73.89759,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Mott Haven Campus",
+    "site_address": "730 Concourse Vlg W",
+    "site_city": "Bronx",
+    "lat": 40.82258,
+    "lon": -73.92355,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "DeWitt Clinton High School",
+    "site_address": "100 W Mosholu Pkwy S",
+    "site_city": "Bronx",
+    "lat": 40.88146,
+    "lon": -73.88693,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 40.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Union Community Health Center #2",
+    "site_address": "2021 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.85198,
+    "lon": -73.90457,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 41.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC at 70W Burnside",
+    "site_address": "70 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.85441,
+    "lon": -73.91027,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 41.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC Vanguard at 233rd Street",
+    "site_address": "825 E 233rd St",
+    "site_city": "Bronx",
+    "lat": 40.89235,
+    "lon": -73.85353,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 41.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "University Avenue Family Practice",
+    "site_address": "105 W 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86433,
+    "lon": -73.90423,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Via Verde Health Center",
+    "site_address": "730 Brook Ave",
+    "site_city": "Bronx",
+    "lat": 40.81925,
+    "lon": -73.91229,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 42.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Union Community Health Center Rehabilitation Center",
+    "site_address": "4487 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.8534,
+    "lon": -73.89201,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 43.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "URBAN HORIZONS FAMILY HEALTH CENTER",
+    "site_address": "50 E 168th St",
+    "site_city": "Bronx",
+    "lat": 40.83649,
+    "lon": -73.91904,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 44.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Fulton Family Medicine Practice",
+    "site_address": "1276 Fulton Ave",
+    "site_city": "Bronx",
+    "lat": 40.83166,
+    "lon": -73.90353,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 44.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Ogden Family Medical and Dental Center",
+    "site_address": "1067 Ogden Ave",
+    "site_city": "Bronx",
+    "lat": 40.83491,
+    "lon": -73.92843,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bella Vista Community Health Center",
+    "site_address": "886 Hunts Point Ave",
+    "site_city": "Bronx",
+    "lat": 40.81911,
+    "lon": -73.88929,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Susan's Place",
+    "site_address": "1911 Jerome Ave",
+    "site_city": "Bronx",
+    "lat": 40.85073,
+    "lon": -73.91042,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Medical and Dental at Poe",
+    "site_address": "2432 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.86057,
+    "lon": -73.89778,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Health and Wellness Center",
+    "site_address": "199 Mount Eden Pkwy",
+    "site_city": "Bronx",
+    "lat": 40.8433,
+    "lon": -73.90977,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "The Counseling Center @ Walton Avenue",
+    "site_address": "25 E 183rd St FL 2",
+    "site_city": "Bronx",
+    "lat": 40.8586,
+    "lon": -73.90304,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Castle Hill Family Practice",
+    "site_address": "2175 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.83429,
+    "lon": -73.85239,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Union Community Health Center #5",
+    "site_address": "2101 Quarry Rd",
+    "site_city": "Bronx",
+    "lat": 40.85197,
+    "lon": -73.89156,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Comprehensive Health Care Center",
+    "site_address": "305 E 161st St",
+    "site_city": "Bronx",
+    "lat": 40.82528,
+    "lon": -73.91699,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Comprehensive Family Care Center",
+    "site_address": "1621 Eastchester Rd",
+    "site_city": "Bronx",
+    "lat": 40.84524,
+    "lon": -73.84548,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Ambulatory Care Network",
+    "site_address": "1650 Grand Concourse FL 14",
+    "site_city": "Bronx",
+    "lat": 40.84363,
+    "lon": -73.91171,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 45.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MOUNT HOPE FAMILY PRACTICE",
+    "site_address": "130 W Tremont Ave",
+    "site_city": "Bronx",
+    "lat": 40.84993,
+    "lon": -73.9145,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 46.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Dental Services",
+    "site_address": "1775 Grand Concourse",
+    "site_city": "Bronx",
+    "lat": 40.84635,
+    "lon": -73.91003,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 46.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Third Avenue Medical and Dental Practice",
+    "site_address": "2745 3rd Ave",
+    "site_city": "Bronx",
+    "lat": 40.81441,
+    "lon": -73.92091,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 47.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Franklin Avenue Women's Shelter",
+    "site_address": "1122 Franklin Ave",
+    "site_city": "Bronx",
+    "lat": 40.82818,
+    "lon": -73.90574,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 48.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BronxCare Dr. Martin Luther King. Jr. Health Center",
+    "site_address": "1265 Franklin Ave",
+    "site_city": "Bronx",
+    "lat": 40.83123,
+    "lon": -73.90271,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 48.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "St. Lawrence Community Health Center",
+    "site_address": "1766 Westchester Ave",
+    "site_city": "Bronx",
+    "lat": 40.83127,
+    "lon": -73.86773,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 49.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Peninsula Community Health Center",
+    "site_address": "1967 Turnbull Ave FL 2",
+    "site_city": "Bronx",
+    "lat": 40.82363,
+    "lon": -73.85647,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 49.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bronx Health Collective @ 890 Prospect Ave",
+    "site_address": "890 Prospect Ave",
+    "site_city": "Bronx",
+    "lat": 40.8207,
+    "lon": -73.90098,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 49.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Adolescent Health and Wellness Center",
+    "site_address": "960 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.82197,
+    "lon": -73.89121,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 49.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "WALTON FAMILY HEALTH CENTER",
+    "site_address": "1894 Walton Ave",
+    "site_city": "Bronx",
+    "lat": 40.8496,
+    "lon": -73.90915,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 52.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "La Casa de Salud, Inc.",
+    "site_address": "966 Prospect Ave",
+    "site_city": "Bronx",
+    "lat": 40.82292,
+    "lon": -73.90006,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 53.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "MHHC at 85 W Burnside",
+    "site_address": "85 W Burnside Ave",
+    "site_city": "Bronx",
+    "lat": 40.8547,
+    "lon": -73.91035,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 53.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "PLAZA DEL CASTILLO HLTH CENTER",
+    "site_address": "1515 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.83322,
+    "lon": -73.89062,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 54.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Bronx Health Collective @ 871 Prospect Ave",
+    "site_address": "871 Prospect Ave",
+    "site_city": "Bronx",
+    "lat": 40.82066,
+    "lon": -73.90143,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 56.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "BELLA VISTA HEALTH CENTER",
+    "site_address": "890 Hunts Point Ave",
+    "site_city": "Bronx",
+    "lat": 40.81934,
+    "lon": -73.88938,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 58.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Harrison Circle",
+    "site_address": "57 W Burnside Ave # 69",
+    "site_city": "Bronx",
+    "lat": 40.85434,
+    "lon": -73.90972,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 58.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Ramon Velez Community Health Center",
+    "site_address": "754 E 151st St",
+    "site_city": "Bronx",
+    "lat": 40.81474,
+    "lon": -73.9072,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 59.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Stevenson Family Health Center",
+    "site_address": "731 White Plains Rd",
+    "site_city": "Bronx",
+    "lat": 40.82035,
+    "lon": -73.85814,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 60.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Union Community Health Center #1",
+    "site_address": "260 E 188th St",
+    "site_city": "Bronx",
+    "lat": 40.86075,
+    "lon": -73.89594,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 61.5,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "El Nuevo San Juan Health Center",
+    "site_address": "1065 Southern Blvd",
+    "site_city": "Bronx",
+    "lat": 40.82505,
+    "lon": -73.89213,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 73.0,
+    "is_fqhc": false
+  },
+  {
+    "site_name": "Prevention Assessment Temporary Housing",
+    "site_address": "151 E 151st St",
+    "site_city": "Bronx",
+    "lat": 40.82156,
+    "lon": -73.92765,
+    "site_category": "Health Center site",
+    "oper_hours_per_week": 112.0,
+    "is_fqhc": false
+  }
+]
