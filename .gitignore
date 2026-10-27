@@ -22,7 +22,11 @@ Thumbs.db
 # Local data
 *.parquet
 *.csv.gz
-
-# Agent runtime artifacts
+# ADK runtime & local DB
+*.db
 .adk/
-agent/.adk/
+**/.adk/
+
+# Story slide deck content and pitch deck exports
+story/SLIDE_DECK_CONTENT.md
+story/*.pdf

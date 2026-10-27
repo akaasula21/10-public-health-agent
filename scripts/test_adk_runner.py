@@ -16,7 +16,7 @@ os.environ["GOOGLE_CLOUD_LOCATION"] = "us-central1"
 
 async def main():
     print("======================================================================")
-    print("RUNNING BRONX MOBILE CARE BROKER ADK PIPELINE (GEMINI 2.5 FLASH)")
+    print("RUNNING BRONX MOBILE CARE BROKER ADK PIPELINE")
     print("======================================================================")
 
     runner = InMemoryRunner(agent=root_agent)

@@ -33,15 +33,24 @@ def test_suite():
     print("BRONX MOBILE CARE BROKER -- AGENTS & TOOLS VERIFICATION SUITE")
     print("=" * 70)
 
-    # 1. Verify ADK Agent Structure
-    print("\n[1/5] Verifying Google ADK Multi-Agent Hierarchy...")
+    # 1. Verify ADK Agent Structure & Model Assignments
+    print("\n[1/5] Verifying Google ADK Multi-Agent Hierarchy & Models...")
     assert root_agent.name == "BronxMobileCareBroker"
     assert len(root_agent.sub_agents) == 3
     assert planner_agent.output_key == "proposed_schedule"
     assert auditor_agent.output_key == "audit_verdict"
     assert flyer_agent.output_key == "outreach_flyers"
     assert director_agent.output_key == "director_briefing"
-    print("  * Root agent and all 4 specialized sub-agents properly configured.")
+    assert planner_agent.model == "gemini-3.6-pro"
+    assert auditor_agent.model == "gemini-3.6-pro"
+    assert flyer_agent.model == "gemini-2.5-flash-image"
+    assert "{audit_verdict?}" in planner_agent.instruction
+    assert "{proposed_schedule?}" in auditor_agent.instruction
+    assert "{proposed_schedule?}" in flyer_agent.instruction
+    assert "{audit_verdict?}" in flyer_agent.instruction
+    assert "{proposed_schedule?}" in director_agent.instruction
+    assert "{audit_verdict?}" in director_agent.instruction
+    print("  ✓ Root agent, model assignments, and session.state templates properly configured.")
 
     # 2. Verify Tool Scoring (Race-blind residential candidate selection)
     print("\n[2/5] Testing score_bronx_tracts (Race-blind composite scoring)...")
