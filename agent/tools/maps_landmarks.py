@@ -10,10 +10,18 @@ Provides:
 
 from __future__ import annotations
 
+import json
 import math
+import os
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote_plus
-from agent.tools.bq_scoring import get_bronx_map_data
+
+import requests
+
+from agent.data.landmarks_catalog import lookup_bronx_landmark_context
+
+DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
 # Curated Bronx Community Landmarks & Transit Hubs for Top Residential Candidates + Backups
 BRONX_LANDMARK_REGISTRY: dict[str, dict[str, Any]] = {
@@ -62,68 +70,56 @@ BRONX_LANDMARK_REGISTRY: dict[str, dict[str, Any]] = {
         "subway_lines": ["6"],
         "subway_station": "Hunts Point Ave Station (directly at plaza corner)",
         "bus_lines": ["Bx5", "Bx6", "Bx6-SBS", "Bx19"],
-        "van_parking_notes": "Southern Blvd curb bay adjacent to Hunts Point Library & Crames Square; central hub for peninsula residents.",
+        "van_parking_notes": "Designated municipal parking pull-in along Hunts Point Ave corridor; direct pedestrian path from 6 train escalator.",
+        "street_view_heading": 30,
+    },
+    "36005002001": {
+        "neighborhood": "Soundview / Clason Point North",
+        "hpsa_zone": "ME - Soundview",
+        "landmark_name": "Soundview Park Promenade & Morrison Ave Plaza",
+        "street_intersection": "Morrison Ave & Westchester Ave, Bronx, NY 10472",
+        "landmark_es": "Plaza Morrison Ave y Westchester Ave (frente al Parque Soundview)",
+        "subway_lines": ["6"],
+        "subway_station": "Morrison Soundview Ave Station",
+        "bus_lines": ["Bx4", "Bx4A", "Bx27"],
+        "van_parking_notes": "Curbside pull-in on Morrison Ave with direct access to Soundview senior centers.",
         "street_view_heading": 110,
     },
-    "36005020501": {
-        "neighborhood": "Crotona / Tremont",
-        "hpsa_zone": "ME - Crotona",
-        "landmark_name": "Tremont Park & Arthur Avenue Community Plaza",
-        "street_intersection": "E Tremont Ave & Arthur Ave / Third Ave, Bronx, NY 10457",
-        "landmark_es": "Plaza del Parque Tremont en E Tremont Ave y Arthur Ave",
-        "subway_lines": ["B", "D", "4"],
-        "subway_station": "Tremont Ave Station",
-        "bus_lines": ["Bx36", "Bx40", "Bx42", "Bx15"],
-        "van_parking_notes": "Curb bay along E Tremont Ave fronting Tremont Park pedestrian plaza.",
-        "street_view_heading": 95,
-    },
-    "36005019500": {
-        "neighborhood": "Mount Eden / High Bridge North",
-        "hpsa_zone": "ME - High Bridge",
-        "landmark_name": "Claremont Park West & Mount Eden Parkway Plaza",
-        "street_intersection": "Mt Eden Pkwy & Morris Ave / Jerome Ave, Bronx, NY 10452",
-        "landmark_es": "Plaza de Mount Eden Parkway y Morris Ave (junto al Parque Claremont)",
-        "subway_lines": ["4", "B", "D"],
-        "subway_station": "Mt Eden Ave Station",
-        "bus_lines": ["Bx1", "Bx2", "Bx32"],
-        "van_parking_notes": "Wide parkside curb lane on Mt Eden Pkwy.",
-        "street_view_heading": 120,
-    },
-    "36005022000": {
-        "neighborhood": "Parkchester / West Farms",
-        "hpsa_zone": "ME - Pelham",
-        "landmark_name": "Hugh J. Grant Circle & Metropolitan Oval Plaza",
-        "street_intersection": "Westchester Ave & White Plains Rd, Bronx, NY 10462",
-        "landmark_es": "Plaza de Hugh Grant Circle en Westchester Ave y White Plains Rd (tren 6)",
+    "36005002002": {
+        "neighborhood": "Soundview / Lafayette Estates",
+        "hpsa_zone": "ME - Soundview",
+        "landmark_name": "Soundview Community Center & Lafayette Ave Plaza",
+        "street_intersection": "Lafayette Ave & Soundview Ave, Bronx, NY 10473",
+        "landmark_es": "Centro Comunitario Soundview en Lafayette Ave y Soundview Ave",
         "subway_lines": ["6"],
-        "subway_station": "Parkchester Station",
-        "bus_lines": ["Bx4", "Bx4A", "Bx22", "Bx36", "Bx39"],
-        "van_parking_notes": "North side plaza bay at Hugh J. Grant Circle.",
-        "street_view_heading": 60,
+        "subway_station": "Elder Ave or Morrison Ave Station (take Bx27 transfer)",
+        "bus_lines": ["Bx27", "Bx39", "NYC Ferry Soundview Landing"],
+        "van_parking_notes": "Wide parking pad directly in front of the community center recreation building.",
+        "street_view_heading": 135,
     },
-    "36005039901": {
-        "neighborhood": "Fordham West / University Heights",
-        "hpsa_zone": "ME - Fordham",
-        "landmark_name": "St. James Park & Jerome Avenue Community Entrance",
-        "street_intersection": "E 190th St & Jerome Ave, Bronx, NY 10468",
-        "landmark_es": "Entrada del Parque St. James en Calle 190 Este y Av. Jerome",
-        "subway_lines": ["4", "B", "D"],
-        "subway_station": "190th St / Fordham Rd Station",
-        "bus_lines": ["Bx3", "Bx12-SBS", "Bx32"],
-        "van_parking_notes": "Curbside pull-in along Jerome Ave at St. James Park.",
-        "street_view_heading": 160,
-    },
-    "36005038600": {
-        "neighborhood": "Williamsbridge / Northeast Bronx",
-        "hpsa_zone": "ME - Northeast Bronx",
-        "landmark_name": "Gun Hill Playground & White Plains Road Hub",
-        "street_intersection": "E Gun Hill Rd & White Plains Rd, Bronx, NY 10467",
-        "landmark_es": "Plaza de Gun Hill Road y White Plains Road (estación del tren 2 y 5)",
-        "subway_lines": ["2", "5"],
-        "subway_station": "Gun Hill Rd Station",
-        "bus_lines": ["Bx28", "Bx30", "Bx39", "Bx41-SBS"],
-        "van_parking_notes": "Holland Ave / E Gun Hill Rd park apron.",
+    "36005014900": {
+        "neighborhood": "Longwood / Southern Boulevard",
+        "hpsa_zone": "ME - Hunts Point",
+        "landmark_name": "Longwood Historic District & Prospect Ave Plaza",
+        "street_intersection": "Longwood Ave & Southern Blvd, Bronx, NY 10459",
+        "landmark_es": "Plaza Longwood Ave y Southern Blvd (salida del tren 2 y 5)",
+        "subway_lines": ["2", "5", "6"],
+        "subway_station": "Prospect Ave (2/5) or Longwood Ave (6)",
+        "bus_lines": ["Bx17", "Bx19"],
+        "van_parking_notes": "Southern Blvd curbside bay; high visibility for neighborhood retail corridors.",
         "street_view_heading": 90,
+    },
+    "36005021602": {
+        "neighborhood": "East Tremont / West Farms",
+        "hpsa_zone": "ME - East Tremont",
+        "landmark_name": "Tremont Park & East Tremont Transit Hub",
+        "street_intersection": "E Tremont Ave & Boston Rd, Bronx, NY 10460",
+        "landmark_es": "Parque Tremont en East Tremont Ave y Boston Rd",
+        "subway_lines": ["2", "5"],
+        "subway_station": "West Farms Sq - E Tremont Ave Station",
+        "bus_lines": ["Bx40", "Bx42", "Bx36", "Q44-SBS"],
+        "van_parking_notes": "Park border pull-in with tree cover for waiting queue.",
+        "street_view_heading": 160,
     },
 }
 
@@ -135,6 +131,22 @@ def _haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
     dl = math.radians(lon2 - lon1)
     a = math.sin(dp / 2) ** 2 + math.cos(p1) * math.cos(p2) * math.sin(dl / 2) ** 2
     return 2 * r * math.asin(math.sqrt(a))
+
+
+def _load_cached_care_sites() -> list[dict[str, Any]]:
+    sites_file = DATA_DIR / "care_sites.json"
+    if sites_file.exists():
+        try:
+            with open(sites_file, "r") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    try:
+        from agent.data.bq_client import load_clean_care_sites_df
+        df = load_clean_care_sites_df(prefer_cache=True)
+        return df.to_dict(orient="records")
+    except Exception:
+        return []
 
 
 def resolve_stop_landmark_and_map_context(
@@ -149,38 +161,50 @@ def resolve_stop_landmark_and_map_context(
         lat: Optional latitude override.
         lon: Optional longitude override.
     """
-    map_data = get_bronx_map_data()
-    tract = next((t for t in map_data["tracts"] if t["geo_id"] == geo_id), None)
-    t_lat = float(lat if lat is not None else (tract["lat"] if tract else 40.8448))
-    t_lon = float(lon if lon is not None else (tract["lon"] if tract else -73.8648))
+    geo_id_str = str(geo_id).strip()
 
-    info = BRONX_LANDMARK_REGISTRY.get(
-        geo_id,
-        {
-            "neighborhood": tract["hpsa_name"].replace("ME - ", "") if tract else "Bronx Community",
-            "hpsa_zone": tract["hpsa_name"] if tract else "ME - Bronx",
-            "landmark_name": f"{tract['hpsa_name'].replace('ME - ', '') if tract else 'Bronx'} Community Transit Plaza",
-            "street_intersection": f"Near ({t_lat:.4f}, {t_lon:.4f}), Bronx, NY",
-            "landmark_es": f"Plaza Comunitaria de {tract['hpsa_name'].replace('ME - ', '') if tract else 'El Bronx'}",
-            "subway_lines": ["4", "2", "5", "6", "B", "D"],
+    # Determine coordinates
+    t_lat = float(lat) if lat is not None else 40.8448
+    t_lon = float(lon) if lon is not None else -73.8648
+
+    # First check BRONX_LANDMARK_REGISTRY
+    if geo_id_str in BRONX_LANDMARK_REGISTRY:
+        info = dict(BRONX_LANDMARK_REGISTRY[geo_id_str])
+    else:
+        # Fallback to the comprehensive 85+ tract catalog
+        catalog_ctx = lookup_bronx_landmark_context(geo_id_str, t_lat, t_lon)
+        info = {
+            "neighborhood": catalog_ctx.get("neighborhood", "Bronx Community"),
+            "hpsa_zone": catalog_ctx.get("hpsa_zone", "ME - Bronx"),
+            "landmark_name": catalog_ctx.get("landmark_name", f"Bronx Community Transit Plaza (Tract {geo_id_str[-6:]})"),
+            "street_intersection": catalog_ctx.get("street_intersection", f"Near ({t_lat:.4f}, {t_lon:.4f}), Bronx, NY"),
+            "landmark_es": f"Plaza Comunitaria (Cerca de {catalog_ctx.get('street_intersection', 'El Bronx')})",
+            "subway_lines": catalog_ctx.get("subway_lines", ["4", "2", "5", "6", "B", "D"]),
             "subway_station": "Nearest Bronx MTA Subway Hub",
-            "bus_lines": ["Bx1", "Bx6", "Bx12", "Bx19"],
+            "bus_lines": catalog_ctx.get("bus_lines", ["Bx1", "Bx6", "Bx12", "Bx19"]),
             "van_parking_notes": "Curbside ADA-accessible mobile clinic bay near main pedestrian plaza.",
-            "street_view_heading": 120,
-        },
-    )
+            "street_view_heading": catalog_ctx.get("camera_heading", 120),
+        }
 
-    # Find nearby care_sites within 0.8 km to show operating-hour bottlenecks
+    heading = info.get("street_view_heading", 120)
+
+    # Find nearby care_sites within 0.85 km to demonstrate operating-hour bottlenecks
+    care_sites = _load_cached_care_sites()
     nearby_sites = []
-    for s in map_data["care_sites"]:
-        dist_km = _haversine_km(t_lat, t_lon, float(s["lat"]), float(s["lon"]))
+    for s in care_sites:
+        s_lat = float(s.get("lat") or s.get("latitude") or 0.0)
+        s_lon = float(s.get("lon") or s.get("longitude") or 0.0)
+        if s_lat == 0.0 or s_lon == 0.0:
+            continue
+        dist_km = _haversine_km(t_lat, t_lon, s_lat, s_lon)
         if dist_km <= 0.85:
+            hours = float(s.get("oper_hours_per_week") or s.get("TOT_OPER_HR_PER_WEEK") or 40.0)
             nearby_sites.append({
-                "site_name": s["site_name"],
-                "site_category": s["site_category"],
+                "site_name": s.get("site_name") or s.get("FACILITY_NM") or "Bronx Clinic",
+                "site_category": s.get("site_category") or s.get("site_kind") or "Clinic",
                 "distance_km": round(dist_km, 2),
-                "oper_hours_per_week": round(float(s["oper_hours_per_week"]), 1),
-                "is_part_time_bottleneck": float(s["oper_hours_per_week"]) < 35.0,
+                "oper_hours_per_week": round(hours, 1),
+                "is_part_time_bottleneck": hours < 35.0,
             })
     nearby_sites.sort(key=lambda x: x["distance_km"])
 
@@ -191,19 +215,35 @@ def resolve_stop_landmark_and_map_context(
         else 36.0
     )
 
-    q_addr = quote_plus(info["street_intersection"])
-    return {
-        "geo_id": geo_id,
+    street_addr = info["street_intersection"]
+    q_addr = quote_plus(street_addr)
+
+    google_maps_url = f"https://www.google.com/maps/search/?api=1&query={q_addr}"
+    street_view_url = (
+        f"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={t_lat:.6f},{t_lon:.6f}"
+        f"&heading={heading}&pitch=5&fov=80"
+    )
+    earth_3d_url = (
+        f"https://earth.google.com/web/@{t_lat:.6f},{t_lon:.6f},25a,450d,35y,{heading}h,60t,0r"
+    )
+
+    result = {
+        "geo_id": geo_id_str,
         "coordinates": {"lat": round(t_lat, 5), "lon": round(t_lon, 5)},
+        "lat": round(t_lat, 6),
+        "lon": round(t_lon, 6),
         "neighborhood": info["neighborhood"],
-        "hpsa_zone": info["hpsa_zone"],
+        "hpsa_zone": info.get("hpsa_zone", "ME - Bronx"),
         "landmark_name": info["landmark_name"],
-        "landmark_es": info["landmark_es"],
-        "street_intersection": info["street_intersection"],
+        "landmark_es": info.get("landmark_es", info["landmark_name"]),
+        "street_intersection": street_addr,
         "subway_lines": info["subway_lines"],
-        "subway_station": info["subway_station"],
+        "subway_station": info.get("subway_station", "Nearest Subway Hub"),
         "bus_lines": info["bus_lines"],
-        "van_parking_notes": info["van_parking_notes"],
+        "van_parking_notes": info.get("van_parking_notes", "Curbside van deployment zone."),
+        "google_maps_url": google_maps_url,
+        "street_view_url": street_view_url,
+        "earth_3d_url": earth_3d_url,
         "nearby_care_sites_within_850m": {
             "total_sites_nearby": len(nearby_sites),
             "part_time_sites_under_35h_wk": part_time_count,
@@ -216,14 +256,27 @@ def resolve_stop_landmark_and_map_context(
             ),
         },
         "google_maps_links": {
-            "google_maps_search_url": f"https://www.google.com/maps/search/?api=1&query={q_addr}",
-            "google_street_view_url": (
-                f"https://www.google.com/maps/@?api=1&map_action=pano&viewpoint={t_lat},{t_lon}"
-                f"&heading={info['street_view_heading']}&pitch=5&fov=80"
-            ),
-            "google_earth_3d_url": (
-                f"https://earth.google.com/web/@{t_lat},{t_lon},25a,450d,35y,{info['street_view_heading']}h,60t,0r"
-            ),
+            "google_maps_search_url": google_maps_url,
+            "google_street_view_url": street_view_url,
+            "google_earth_3d_url": earth_3d_url,
             "osm_embed_bbox": f"{t_lon - 0.006:.5f},{t_lat - 0.004:.5f},{t_lon + 0.006:.5f},{t_lat + 0.004:.5f}",
         },
     }
+
+    # Optional Google Maps reverse geocoding if API key is provided
+    api_key = os.environ.get("GOOGLE_MAPS_API_KEY", "").strip()
+    if api_key:
+        try:
+            resp = requests.get(
+                "https://maps.googleapis.com/maps/api/geocode/json",
+                params={"latlng": f"{t_lat},{t_lon}", "key": api_key},
+                timeout=2,
+            )
+            if resp.status_code == 200:
+                results = resp.json().get("results", [])
+                if results:
+                    result["formatted_address"] = results[0].get("formatted_address", "")
+        except Exception:
+            pass
+
+    return result

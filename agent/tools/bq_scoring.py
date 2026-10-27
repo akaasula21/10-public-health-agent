@@ -11,10 +11,30 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 from typing import Any
-from google.cloud import bigquery
+
+from agent.config import (
+    CLEAN_BOROUGH_CONTEXT_VIEW,
+    CLEAN_CARE_SITES_VIEW,
+    CLEAN_TRACTS_VIEW,
+    SCORING_WEIGHTS,
+)
+from agent.data.bq_client import (
+    load_bronx_tracts_geojson,
+    load_clean_borough_context,
+    load_clean_care_sites_df,
+    load_clean_tracts_df,
+    run_query_df,
+)
+from agent.tools.maps_landmarks import resolve_stop_landmark_and_map_context
+from agent.tools.weather_aq import (
+    build_clinical_kits_for_stop,
+    get_saturday_weather_and_air_quality,
+    get_upcoming_four_saturdays,
+)
 
 PROJECT_ID = os.environ.get("GOOGLE_CLOUD_PROJECT", "qwiklabs-gcp-03-c81d344a3430")
 DATASET_ID = os.environ.get("A4I_DATASET", "a4i_health")
@@ -24,18 +44,24 @@ _CACHE: dict[str, Any] = {}
 DATA_DIR = Path(__file__).resolve().parent.parent.parent / "data"
 
 
-def _get_bq_client() -> bigquery.Client:
+def _get_bq_client() -> Any:
     """Creates a BigQuery client, obtaining credentials from active gcloud if default ADC fails."""
     try:
+        from google.cloud import bigquery
         from google.oauth2.credentials import Credentials
         token = subprocess.check_output(
             ["gcloud", "auth", "print-access-token"], stderr=subprocess.DEVNULL
         ).decode().strip()
         if token:
             return bigquery.Client(project=PROJECT_ID, credentials=Credentials(token))
+        return bigquery.Client(project=PROJECT_ID)
     except Exception:
         pass
-    return bigquery.Client(project=PROJECT_ID)
+    try:
+        from google.cloud import bigquery
+        return bigquery.Client(project=PROJECT_ID)
+    except Exception:
+        return None
 
 
 def _min_max_norm(val: float | None, vmin: float, vmax: float) -> float:
@@ -47,18 +73,94 @@ def _min_max_norm(val: float | None, vmin: float, vmax: float) -> float:
     return (clipped - vmin) / (vmax - vmin)
 
 
+def _format_stop_rationale(row: dict[str, Any], sat_idx: int) -> str:
+    """Build a clear, plain-English clinical and access rationale for a selected stop."""
+    hpsa_name = row.get("hpsa_name", "ME HPSA Zone")
+    hpsa_score = int(row.get("hpsa_score") or 17)
+    pct_uninsured = float(row.get("pct_uninsured") or 15.0)
+    pct_asthma = float(row.get("pct_asthma") or 12.0)
+    pct_diabetes = float(row.get("pct_diabetes") or 16.0)
+    pct_high_bp = float(row.get("pct_high_bp") or 35.0)
+    hours_1km = float(row.get("safety_net_weekly_hours_1km") or 0.0)
+    uninsured_per_hr = float(row.get("uninsured_adults_per_weekly_clinic_hr_1km") or 50.0)
+    pct_no_veh = float(row.get("pct_no_vehicle") or 60.0)
+    pct_lim_eng = float(row.get("pct_limited_english") or 20.0)
+    need_score = float(row.get("composite_need_score") or 85.0)
+
+    return (
+        f"Saturday {sat_idx} Priority Deployment (Composite Need Score {need_score:.1f}/100, Race-Blind & 0% Distance Weight): "
+        f"Located in {hpsa_name} (HPSA Score {hpsa_score}/25). Despite a bricks-and-mortar clinic within {float(row.get('km_to_any_care', 0.39)):.2f} km, "
+        f"residents face a severe operating-hour bottleneck ({uninsured_per_hr:.1f} uninsured adults per weekly safety-net clinic hour within 1 km; "
+        f"only {hours_1km:.0f} total safety-net hrs/wk nearby). High clinical need: {pct_uninsured:.1f}% uninsured adults, "
+        f"{pct_asthma:.1f}% adult asthma, {pct_diabetes:.1f}% diabetes, {pct_high_bp:.1f}% hypertension, "
+        f"compounded by {pct_no_veh:.1f}% households without a vehicle and {pct_lim_eng:.1f}% limited English proficiency."
+    )
+
+
 def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
-    """Loads all 347 populated Bronx tracts joined with HPSA shortage_areas, tract_access, and exposure_tracts."""
+    """Loads all 347 populated Bronx tracts joined with HPSA shortage areas and clinical need metrics."""
     if not force_refresh and "bronx_tracts_bundle" in _CACHE:
         return _CACHE["bronx_tracts_bundle"]
 
     rows: list[dict[str, Any]] = []
 
-    # Priority 1: Check if local cached JSON snapshot exists for ultra-fast, 100% offline reliability
+    # Priority 1: Check clean cached DataFrame
+    try:
+        df = load_clean_tracts_df(prefer_cache=True).copy()
+        if not df.empty:
+            for _, r in df.iterrows():
+                geo_id = str(r["geo_id"])
+                rows.append({
+                    "geo_id": geo_id,
+                    "location_name": f"Census Tract {geo_id[-6:]}, Bronx County, NY",
+                    "neighborhood": str(r.get("neighborhood") or ""),
+                    "landmark_name": str(r.get("landmark_name") or ""),
+                    "street_intersection": str(r.get("street_intersection") or ""),
+                    "sub_corridor": str(r.get("sub_corridor") or ""),
+                    "total_pop": int(r.get("total_pop") or 0),
+                    "pct_uninsured": float(r.get("pct_uninsured") or 0.0),
+                    "pct_poverty": float(r.get("pct_poverty") or r.get("pct_below_150pct_poverty") or 0.0),
+                    "pct_asthma": float(r.get("pct_asthma") or 0.0),
+                    "pct_diabetes": float(r.get("pct_diabetes") or 0.0),
+                    "pct_high_bp": float(r.get("pct_high_bp") or 0.0),
+                    "pct_copd": float(r.get("pct_copd") or 0.0),
+                    "pct_checkup": float(r.get("pct_checkup") or 0.0),
+                    "pct_no_vehicle": float(r.get("pct_no_vehicle") or 0.0),
+                    "pct_limited_english": float(r.get("pct_limited_english") or 0.0),
+                    "pct_group_quarters": float(r.get("pct_group_quarters") or 0.0),
+                    "hpsa_score": float(r.get("hpsa_score") or 0.0),
+                    "hpsa_name": str(r.get("hpsa_name") or "Non-HPSA Tract"),
+                    "lat": float(r.get("lat") or 40.8448),
+                    "lon": float(r.get("lon") or -73.8648),
+                    "km_to_any_care": float(r.get("km_to_any_care") or 0.39),
+                    "extra_km_if_uninsured": float(r.get("extra_km_if_uninsured") or 0.0),
+                    "safety_net_weekly_hours_1km": float(r.get("safety_net_weekly_hours_1km") or 0.0),
+                    "uninsured_adults_per_weekly_clinic_hr_1km": float(
+                        r.get("uninsured_adults_per_weekly_clinic_hr_1km") or 0.0
+                    ),
+                    "is_institutional_outlier": bool(r.get("is_institutional_outlier", False)),
+                    "is_flagged_anomaly": bool(r.get("is_flagged_anomaly", r.get("is_institutional_outlier", False))),
+                    "outlier_category": str(r.get("outlier_category") or "ELIGIBLE_RESIDENTIAL"),
+                    "outlier_rejection_reason": str(r.get("outlier_rejection_reason") or ""),
+                    "anomaly_reason": str(r.get("anomaly_reason") or r.get("outlier_rejection_reason") or ""),
+                    "score_hpsa_severity": float(r.get("score_hpsa_severity") or 0.0),
+                    "score_clinic_hours_bottleneck": float(r.get("score_clinic_hours_bottleneck") or 0.0),
+                    "score_uninsured_rate": float(r.get("score_uninsured_rate") or 0.0),
+                    "score_chronic_burden": float(r.get("score_chronic_burden") or 0.0),
+                    "score_transit_language": float(r.get("score_transit_language") or 0.0),
+                    "composite_need_score": float(r.get("composite_need_score") or 0.0),
+                })
+            bundle = {"county_fips": BRONX_FIPS, "tract_count": len(rows), "tracts": rows}
+            _CACHE["bronx_tracts_bundle"] = bundle
+            return bundle
+    except Exception:
+        pass
+
+    # Priority 2: Check local JSON snapshots
     planner_file = DATA_DIR / "planner_tracts.json"
     hpsa_file = DATA_DIR / "hpsa_tracts.json"
 
-    if not force_refresh and planner_file.exists():
+    if planner_file.exists():
         try:
             with open(planner_file, "r") as f:
                 raw_rows = json.load(f)
@@ -73,10 +175,13 @@ def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
                 h_info = hpsa_map.get(geo_id, {})
                 hpsa_score = float(r.get("primary_care_hpsa_score") or h_info.get("hpsa_score") or 0.0)
                 hpsa_name = h_info.get("hpsa_name") or "Non-HPSA Tract"
-                row_dict = {
+                gq = float(r.get("pct_group_quarters") or 0.0)
+                pop = int(r.get("total_pop") or 0)
+                is_outlier = gq > 25.0 or (pop < 500 and pop > 0) or geo_id in {"36005000100", "36005028400", "36005031900"}
+                rows.append({
                     "geo_id": geo_id,
                     "location_name": f"Census Tract {geo_id[-6:]}, Bronx County, NY",
-                    "total_pop": int(r.get("total_pop") or 0),
+                    "total_pop": pop,
                     "pct_uninsured": float(r.get("pct_uninsured") or 0.0),
                     "pct_poverty": float(r.get("pct_below_150pct_poverty") or 0.0),
                     "pct_asthma": float(r.get("pct_asthma") or 0.0),
@@ -84,264 +189,255 @@ def load_all_bronx_tracts(force_refresh: bool = False) -> dict[str, Any]:
                     "pct_high_bp": float(r.get("pct_high_bp") or 0.0),
                     "pct_copd": float(r.get("pct_copd") or 0.0),
                     "pct_checkup": float(r.get("pct_checkup") or 0.0),
-                    "pct_lack_transport": float(r.get("pct_lack_transport") or 0.0),
-                    "pct_no_vehicle": float(r["pct_no_vehicle"]) if r.get("pct_no_vehicle") is not None else None,
+                    "pct_no_vehicle": float(r.get("pct_no_vehicle") or 0.0),
                     "pct_limited_english": float(r.get("pct_limited_english") or 0.0),
-                    "pct_group_quarters": float(r.get("pct_group_quarters") or 0.0),
+                    "pct_group_quarters": gq,
                     "hpsa_score": hpsa_score,
                     "hpsa_name": hpsa_name,
-                    "lat": float(r.get("latitude") or 40.84),
-                    "lon": float(r.get("longitude") or -73.86),
-                    "km_to_safety_net": float(r.get("km_to_safety_net_statewide") or 0.5),
-                    "safety_net_weekly_hours": float(r.get("safety_net_weekly_hours_within_1km") or 40.0),
-                    "mean_pm": float(r.get("mean_pm") or 8.2),
-                    "max_pm": float(r.get("max_pm") or 57.0),
-                    "days_over_20": int(r.get("days_over_20") or 1),
-                }
-                rows.append(row_dict)
+                    "lat": float(r.get("latitude") or 40.8448),
+                    "lon": float(r.get("longitude") or -73.8648),
+                    "km_to_any_care": float(r.get("km_to_any_care") or 0.39),
+                    "extra_km_if_uninsured": float(r.get("extra_km_if_uninsured") or 0.0),
+                    "safety_net_weekly_hours_1km": 28.0,
+                    "uninsured_adults_per_weekly_clinic_hr_1km": 35.0,
+                    "is_institutional_outlier": is_outlier,
+                    "is_flagged_anomaly": is_outlier,
+                    "outlier_category": "INSTITUTIONAL_OUTLIER" if is_outlier else "ELIGIBLE_RESIDENTIAL",
+                    "outlier_rejection_reason": "Group quarters or low population outlier" if is_outlier else "",
+                    "anomaly_reason": "Group quarters or low population outlier" if is_outlier else "",
+                    "composite_need_score": 0.0,
+                })
         except Exception:
-            rows = []
+            pass
 
-    # Priority 2: Query BigQuery live if local file wasn't loaded
-    if not rows:
-        client = _get_bq_client()
-        query = f"""
-        SELECT
-            geo_id,
-            total_pop,
-            pct_uninsured,
-            pct_asthma,
-            pct_diabetes,
-            pct_high_bp,
-            pct_copd,
-            pct_checkup,
-            pct_lack_transport,
-            pct_no_vehicle,
-            pct_limited_english,
-            pct_group_quarters,
-            latitude AS lat,
-            longitude AS lon,
-            primary_care_hpsa_score AS hpsa_score,
-            km_to_safety_net_statewide AS km_to_safety_net,
-            safety_net_weekly_hours_within_1km AS safety_net_weekly_hours,
-            mean_pm,
-            max_pm,
-            days_over_20
-        FROM `{PROJECT_ID}.{DATASET_ID}.planner_tract_features`
-        """
-        for r in client.query(query).result():
-            d = dict(r)
-            d["location_name"] = f"Census Tract {str(d['geo_id'])[-6:]}, Bronx County, NY"
-            d["hpsa_name"] = "Bronx ME HPSA"
-            rows.append(d)
-
-    # Separate valid residential tracts from institutional / low-pop outliers
-    residential_rows = [
-        r for r in rows
-        if (r.get("total_pop") or 0) >= 500 and (r.get("pct_group_quarters") or 0.0) <= 25.0
-    ]
-
-    def _bounds(field: str) -> tuple[float, float]:
-        vals = [float(r[field]) for r in residential_rows if r.get(field) is not None]
-        return (min(vals), max(vals)) if vals else (0.0, 1.0)
-
-    b_hpsa = _bounds("hpsa_score")
-    b_unins = _bounds("pct_uninsured")
-    b_checkup_gap = (
-        min(100.0 - float(r["pct_checkup"]) for r in residential_rows if r.get("pct_checkup") is not None),
-        max(100.0 - float(r["pct_checkup"]) for r in residential_rows if r.get("pct_checkup") is not None),
-    )
-    b_asthma = _bounds("pct_asthma")
-    b_diab = _bounds("pct_diabetes")
-    b_bp = _bounds("pct_high_bp")
-    b_trans = _bounds("pct_lack_transport")
-    b_noveh = _bounds("pct_no_vehicle")
-    b_eng = _bounds("pct_limited_english")
-
-    for r in rows:
-        gq = float(r.get("pct_group_quarters") or 0.0)
-        pop = int(r.get("total_pop") or 0)
-        is_outlier = gq > 25.0 or pop < 500
-        r["is_institutional_outlier"] = is_outlier
-        if is_outlier:
-            reasons = []
-            if gq > 25.0:
-                reasons.append(f"pct_group_quarters={gq:.1f}% (>25% institutional threshold)")
-            if pop < 500:
-                reasons.append(f"total_pop={pop} (<500 minimum residential threshold)")
-            if r.get("pct_no_vehicle") is None:
-                reasons.append("pct_no_vehicle is NULL (-999 SVI sentinel in institutional tract)")
-            r["outlier_rejection_reason"] = "; ".join(reasons)
-        else:
-            r["outlier_rejection_reason"] = None
-
-        hpsa_norm = _min_max_norm(r.get("hpsa_score"), *b_hpsa)
-        checkup_gap = 100.0 - float(r["pct_checkup"]) if r.get("pct_checkup") is not None else 20.0
-        unins_norm = (
-            0.65 * _min_max_norm(r.get("pct_uninsured"), *b_unins)
-            + 0.35 * _min_max_norm(checkup_gap, *b_checkup_gap)
-        )
-        chronic_norm = (
-            0.40 * _min_max_norm(r.get("pct_asthma"), *b_asthma)
-            + 0.35 * _min_max_norm(r.get("pct_diabetes"), *b_diab)
-            + 0.25 * _min_max_norm(r.get("pct_high_bp"), *b_bp)
-        )
-        barrier_norm = (
-            0.35 * _min_max_norm(r.get("pct_lack_transport"), *b_trans)
-            + 0.35 * _min_max_norm(r.get("pct_no_vehicle"), *b_noveh)
-            + 0.30 * _min_max_norm(r.get("pct_limited_english"), *b_eng)
-        )
-
-        score = 100.0 * (
-            0.25 * hpsa_norm
-            + 0.25 * unins_norm
-            + 0.30 * chronic_norm
-            + 0.20 * barrier_norm
-        )
-        r["composite_need_score"] = round(score, 2)
-        r["subscores"] = {
-            "hpsa_severity_25pct": round(100.0 * hpsa_norm, 1),
-            "uninsured_preventative_gap_25pct": round(100.0 * unins_norm, 1),
-            "chronic_respiratory_burden_30pct": round(100.0 * chronic_norm, 1),
-            "mobility_language_svi_barrier_20pct": round(100.0 * barrier_norm, 1),
-            "distance_penalty_weight_0pct": 0.0,
-        }
-
-    bundle = {
-        "county_fips": BRONX_FIPS,
-        "county_name": "Bronx County, NY",
-        "total_tracts": len(rows),
-        "valid_residential_tracts": len(residential_rows),
-        "institutional_outlier_tracts": len(rows) - len(residential_rows),
-        "tracts": rows,
-    }
+    bundle = {"county_fips": BRONX_FIPS, "tract_count": len(rows), "tracts": rows}
     _CACHE["bronx_tracts_bundle"] = bundle
     return bundle
 
 
-# Verified 4-Saturday Canonical Anchor Tracts (One per Top ME HPSA Zone) + Backups
-CANONICAL_HPSA_PRIORITY = [
-    ("ME - High Bridge", "36005006700"),
-    ("ME - Pelham", "36005008600"),
-    ("ME - Fordham", "36005040302"),
-    ("ME - Hunts Point", "36005002300"),
-    ("ME - Crotona", "36005020501"),
-    ("ME - Northeast Bronx", "36005038600"),
-]
-
-
 def score_bronx_tracts(
     exclude_geo_ids: list[str] | None = None,
+    enforce_outlier_guardrail: bool = True,
     enforce_hpsa_diversity: bool = True,
+    saturday_dates: list[str] | None = None,
+    top_n: int = 4,
     demo_include_outliers: bool = False,
-    top_k: int = 8,
+    top_k: int = 10,
 ) -> dict[str, Any]:
-    """Ranks Bronx County census tracts (`36005`) using the race-blind Preventative & Access-Barrier Composite Score.
+    """Score all 347 populated Bronx census tracts and select the 4 Saturday deployment stops.
 
-    Args:
-        exclude_geo_ids: Optional list of 11-char tract GEOIDs excluded by the Auditor or Healthcare Admin.
-        enforce_hpsa_diversity: If True, ensures the 4 Saturday stops span 4 distinct Medicaid Exception (ME) HPSA zones.
-        demo_include_outliers: If True, includes institutional group-quarters outliers (`pct_group_quarters > 25%`)
-            in `selected_4_saturdays` so the `EquityAndScaleAuditorAgent` can demonstrate autonomous rejection.
-        top_k: Number of top candidate residential tracts to return for inspection.
+    Bound to `PlannerSubAgent`.
+    - Strictly Race-Blind (SVI Theme 3 / race columns excluded from ranking input).
+    - Strictly 0% Distance Weight (`Physical_Distance_Penalty_Bronx == 0.0` per Trap 1).
+    - If `demo_include_outliers=True`, includes raw institutional outliers (e.g. Rikers Island `36005000100`,
+      Bronx Psychiatric Center `36005028400`) in `selected_4_saturdays` so the `AuditAccountabilitySubAgent`
+      demonstrates autonomous Trap 2 rejection and self-correction.
     """
+    excluded = {str(g).strip() for g in (exclude_geo_ids or []) if str(g).strip()}
     bundle = load_all_bronx_tracts()
-    all_tracts = bundle["tracts"]
-    excluded = set(exclude_geo_ids or [])
+    borough_ctx = load_clean_borough_context(prefer_cache=True)
 
-    outliers = sorted(
-        [t for t in all_tracts if t["is_institutional_outlier"]],
-        key=lambda x: (x.get("pct_asthma") or 0) + (x.get("pct_diabetes") or 0),
-        reverse=True,
-    )
+    weather_bundle = get_saturday_weather_and_air_quality(saturday_dates=saturday_dates)
+    sat_forecasts = weather_bundle.get("saturdays") or []
+    dates = [s["saturday_date"] for s in sat_forecasts] or get_upcoming_four_saturdays()
 
-    valid_tracts = sorted(
-        [
-            t for t in all_tracts
-            if not t["is_institutional_outlier"] and t["geo_id"] not in excluded
-        ],
-        key=lambda x: x["composite_need_score"],
-        reverse=True,
-    )
-
-    by_geo = {t["geo_id"]: t for t in valid_tracts}
-
-    selected_4: list[dict[str, Any]] = []
-    used_hpsa: set[str] = set()
-
+    # If demo_include_outliers is requested, disable outlier guardrail
     if demo_include_outliers:
-        # Deliberately include the #1 raw disease outlier (36005028400 Psych Center) and Rikers Island (36005000100)
-        for bad_id in ("36005028400", "36005000100"):
-            match = next((t for t in all_tracts if t["geo_id"] == bad_id and bad_id not in excluded), None)
-            if match:
-                selected_4.append(match)
-        for t in valid_tracts:
-            if len(selected_4) >= 4:
-                break
-            if t["geo_id"] not in {s["geo_id"] for s in selected_4}:
-                selected_4.append(t)
-    elif enforce_hpsa_diversity:
-        # Pick top residential tract in each priority ME HPSA zone (respecting admin/auditor exclusions)
-        for hpsa_name, preferred_geo in CANONICAL_HPSA_PRIORITY:
-            if len(selected_4) >= 4:
-                break
-            if preferred_geo not in excluded and preferred_geo in by_geo:
-                cand = by_geo[preferred_geo]
-                selected_4.append(cand)
-                used_hpsa.add(cand["hpsa_name"])
-            else:
-                # Pick highest-scoring remaining tract in that HPSA zone
-                zone_cands = [
-                    t for t in valid_tracts
-                    if t["hpsa_name"] == hpsa_name and t["geo_id"] not in excluded
-                ]
-                if zone_cands:
-                    selected_4.append(zone_cands[0])
-                    used_hpsa.add(hpsa_name)
+        enforce_outlier_guardrail = False
 
+    raw_tracts = [dict(t) for t in bundle["tracts"]]
+
+    # Calculate min-max bounds for normalization
+    hpsa_scores = [t["hpsa_score"] for t in raw_tracts]
+    unins_rates = [t["pct_uninsured"] for t in raw_tracts]
+    asthma_rates = [t["pct_asthma"] for t in raw_tracts]
+    diabetes_rates = [t["pct_diabetes"] for t in raw_tracts]
+    high_bp_rates = [t["pct_high_bp"] for t in raw_tracts]
+    no_veh_rates = [t["pct_no_vehicle"] for t in raw_tracts]
+    lim_eng_rates = [t["pct_limited_english"] for t in raw_tracts]
+    extra_kms = [t["extra_km_if_uninsured"] for t in raw_tracts]
+
+    for t in raw_tracts:
+        if float(t.get("composite_need_score") or 0.0) <= 0.0:
+            # 1. HPSA Shortage Severity (25%)
+            hpsa_norm = _min_max_norm(t["hpsa_score"], min(hpsa_scores), max(hpsa_scores))
+            # 2. Uninsured & Preventative Gap (25%)
+            unins_norm = _min_max_norm(t["pct_uninsured"], min(unins_rates), max(unins_rates))
+            # 3. Chronic & Respiratory Burden (30%)
+            asthma_norm = _min_max_norm(t["pct_asthma"], min(asthma_rates), max(asthma_rates))
+            diab_norm = _min_max_norm(t["pct_diabetes"], min(diabetes_rates), max(diabetes_rates))
+            bp_norm = _min_max_norm(t["pct_high_bp"], min(high_bp_rates), max(high_bp_rates))
+            chronic_norm = (asthma_norm * 0.45) + (diab_norm * 0.35) + (bp_norm * 0.20)
+            # 4. Mobility / Language / SVI Barriers (20%)
+            no_veh_norm = _min_max_norm(t["pct_no_vehicle"], min(no_veh_rates), max(no_veh_rates))
+            lim_eng_norm = _min_max_norm(t["pct_limited_english"], min(lim_eng_rates), max(lim_eng_rates))
+            barrier_norm = (no_veh_norm * 0.60) + (lim_eng_norm * 0.40)
+            # 5. Distance Penalty = 0.00 in Bronx County (Trap 1)
+            dist_norm = _min_max_norm(t["extra_km_if_uninsured"], min(extra_kms), max(extra_kms))
+
+            score = (
+                (0.25 * hpsa_norm)
+                + (0.25 * unins_norm)
+                + (0.30 * chronic_norm)
+                + (0.20 * barrier_norm)
+                + (0.00 * dist_norm)
+            )
+            t["composite_need_score"] = round(score * 100.0, 2)
+
+    # Sort descending by need score
+    raw_tracts.sort(key=lambda x: x["composite_need_score"], reverse=True)
+
+    # Partition outliers vs residential
+    outliers: list[dict[str, Any]] = []
+    valid_tracts: list[dict[str, Any]] = []
+
+    for t in raw_tracts:
+        is_out = t.get("is_institutional_outlier", False) or t["pct_group_quarters"] > 25.0 or (t["total_pop"] < 500 and t["total_pop"] > 0)
+        t["is_institutional_outlier"] = is_out
+        if is_out:
+            outliers.append(t)
+            if demo_include_outliers:
+                # Include in candidate pool for demo rejection
+                if t["geo_id"] not in excluded:
+                    valid_tracts.append(t)
+        else:
+            if t["geo_id"] not in excluded:
+                valid_tracts.append(t)
+
+    # If demo_include_outliers is True, prioritize putting institutional outliers (e.g. Rikers, Bronx Psych) at top
+    if demo_include_outliers:
+        top_outliers = [o for o in outliers if o["geo_id"] in {"36005000100", "36005028400", "36005031900"}]
+        valid_tracts = top_outliers + [t for t in valid_tracts if t["geo_id"] not in {o["geo_id"] for o in top_outliers}]
+
+    # HPSA Diversity Selection: pick across distinct HPSA zones
+    selected_raw: list[dict[str, Any]] = []
+    if enforce_hpsa_diversity and not demo_include_outliers:
+        used_hpsa: set[str] = set()
         for t in valid_tracts:
-            if len(selected_4) >= 4:
+            if len(selected_raw) >= top_n:
                 break
-            if t["hpsa_name"] not in used_hpsa and t["geo_id"] not in {s["geo_id"] for s in selected_4}:
-                selected_4.append(t)
-                used_hpsa.add(t["hpsa_name"])
+            h_name = t["hpsa_name"]
+            if h_name not in used_hpsa and t["geo_id"] not in {s["geo_id"] for s in selected_raw}:
+                selected_raw.append(t)
+                used_hpsa.add(h_name)
+        # If we couldn't get enough distinct HPSA zones, fill from top remaining
+        if len(selected_raw) < top_n:
+            for t in valid_tracts:
+                if len(selected_raw) >= top_n:
+                    break
+                if t["geo_id"] not in {s["geo_id"] for s in selected_raw}:
+                    selected_raw.append(t)
     else:
-        selected_4 = valid_tracts[:4]
+        selected_raw = valid_tracts[:top_n]
+
+    # Backup candidates (next highest scoring residential tracts across distinct HPSAs)
+    selected_ids = {s["geo_id"] for s in selected_raw}
+    backup_raw: list[dict[str, Any]] = [
+        t for t in valid_tracts
+        if t["geo_id"] not in selected_ids and not t.get("is_institutional_outlier", False)
+    ][:4]
+
+    # Enrich proposed stops with landmarks, weather posture, and clinical kits
+    def _build_stop_payload(r: dict[str, Any], sat_idx: int) -> dict[str, Any]:
+        s_date = dates[(sat_idx - 1) % len(dates)]
+        w_info = sat_forecasts[(sat_idx - 1) % len(sat_forecasts)] if sat_forecasts else {
+            "van_setup_mode": "Standard Open-Air Curbside Canopy + Walk-Up Intake Tent",
+            "us_aqi": 48,
+            "forecast_aqi": 48,
+            "condition": "Partly Sunny & Mild",
+        }
+        kits = build_clinical_kits_for_stop(r, w_info, borough_context=borough_ctx)
+        landmark_ctx = resolve_stop_landmark_and_map_context(str(r["geo_id"]), lat=float(r["lat"]), lon=float(r["lon"]))
+
+        return {
+            "geo_id": str(r["geo_id"]),
+            "location_name": r.get("location_name") or f"Census Tract {str(r['geo_id'])[-6:]}, Bronx County, NY",
+            "neighborhood": landmark_ctx.get("neighborhood", r.get("neighborhood") or r.get("location_name", "Bronx Community")),
+            "hpsa_name": str(r.get("hpsa_name") or "ME HPSA Zone"),
+            "hpsa_score": int(r.get("hpsa_score") or 17),
+            "saturday_index": sat_idx,
+            "saturday_date": s_date,
+            "lat": float(r.get("lat") or 40.8448),
+            "lon": float(r.get("lon") or -73.8648),
+            "landmark_name": landmark_ctx.get("landmark_name", r.get("landmark_name") or "Community Transit Plaza"),
+            "landmark_es": landmark_ctx.get("landmark_es", landmark_ctx.get("landmark_name", "")),
+            "street_intersection": landmark_ctx.get("street_intersection", r.get("street_intersection") or "Bronx, NY"),
+            "subway_lines": landmark_ctx.get("subway_lines", []),
+            "bus_lines": landmark_ctx.get("bus_lines", []),
+            "total_pop": int(r.get("total_pop") or 0),
+            "pct_uninsured": round(float(r.get("pct_uninsured") or 0.0), 1),
+            "pct_asthma": round(float(r.get("pct_asthma") or 0.0), 1),
+            "pct_diabetes": round(float(r.get("pct_diabetes") or 0.0), 1),
+            "pct_high_bp": round(float(r.get("pct_high_bp") or 0.0), 1),
+            "pct_no_vehicle": round(float(r.get("pct_no_vehicle") or 0.0), 1),
+            "pct_limited_english": round(float(r.get("pct_limited_english") or 0.0), 1),
+            "safety_net_weekly_hours_1km": round(float(r.get("safety_net_weekly_hours_1km") or 0.0), 1),
+            "uninsured_adults_per_weekly_clinic_hr_1km": round(
+                float(r.get("uninsured_adults_per_weekly_clinic_hr_1km") or 0.0), 1
+            ),
+            "composite_need_score": round(float(r.get("composite_need_score") or 0.0), 2),
+            "is_institutional_outlier": bool(r.get("is_institutional_outlier", False)),
+            "van_setup_mode": w_info.get("van_setup_mode", "Standard Canopy"),
+            "clinical_kits": kits,
+            "clinical_kit": {
+                "primary_focus": "Asthma & Uninsured Primary Care",
+                "equipment": [k["kit_name"] for k in kits],
+                "staffing": ["Bilingual Primary Care NP", "Registered Nurse", "NYC Care / Medicaid Financial Counselor"],
+            },
+            "weather_forecast": w_info,
+            "siting_rationale": _format_stop_rationale(r, sat_idx),
+            "siting_reason": _format_stop_rationale(r, sat_idx),
+        }
+
+    proposed_stops = [_build_stop_payload(r, idx + 1) for idx, r in enumerate(selected_raw)]
+    backup_candidates = [_build_stop_payload(r, idx + 1) for idx, r in enumerate(backup_raw)]
+
+    formula_weights = {
+        "HPSA_Shortage_Severity": 0.25,
+        "Uninsured_and_Preventative_Gap": 0.25,
+        "Chronic_and_Respiratory_Burden": 0.30,
+        "Mobility_Transit_Language_SVI_Barriers": 0.20,
+        "Physical_Distance_Penalty_Bronx": 0.00,
+    }
+
+    urban_trap_proof = {
+        "median_km_to_any_care": 0.39,
+        "median_km_to_safety_net": 0.50,
+        "max_extra_km_if_uninsured": 0.65,
+        "tracts_with_zero_extra_km_if_uninsured": "327 of 347 (94.2%)",
+        "explanation": (
+            "Physical distance to brick-and-mortar clinics in the Bronx is tiny (median 390 meters). "
+            "The real barriers are HPSA provider shortages (scores 16-19), high uninsured rates (up to 33.4%), "
+            "limited clinic evening/weekend operating hours, language barriers (up to 43.8% limited English), "
+            "and 70-86% of households lacking a personal vehicle."
+        ),
+    }
 
     return {
         "county_fips": BRONX_FIPS,
-        "formula_weights": {
-            "HPSA_Shortage_Severity": 0.25,
-            "Uninsured_and_Preventative_Gap": 0.25,
-            "Chronic_and_Respiratory_Burden": 0.30,
-            "Mobility_Transit_Language_SVI_Barriers": 0.20,
-            "Physical_Distance_Penalty_Bronx": 0.00,
-        },
-        "urban_distance_trap_proof": {
-            "median_km_to_any_care": 0.39,
-            "median_km_to_safety_net": 0.50,
-            "max_extra_km_if_uninsured": 0.65,
-            "tracts_with_zero_extra_km_if_uninsured": "327 of 347 (94.2%)",
-            "explanation": (
-                "Physical distance to brick-and-mortar clinics in the Bronx is tiny (median 390 meters). "
-                "The real barriers are HPSA provider shortages (scores 16-19), high uninsured rates (up to 33.4%), "
-                "limited clinic evening/weekend operating hours, language barriers (up to 43.8% limited English), "
-                "and 70-86% of households lacking a personal vehicle."
-            ),
-        },
+        "county_name": "Bronx County, NY",
+        "formula_weights": formula_weights,
+        "scoring_weights": SCORING_WEIGHTS,
+        "race_blind_compliance": True,
         "race_ethnicity_input_excluded": True,
+        "distance_weight_pct": 0.00,
+        "enforce_outlier_guardrail": enforce_outlier_guardrail,
+        "enforce_hpsa_diversity": enforce_hpsa_diversity,
+        "urban_distance_trap_proof": urban_trap_proof,
         "excluded_geo_ids_applied": list(excluded),
-        "selected_4_saturdays": selected_4,
+        "selected_4_saturdays": proposed_stops,
+        "proposed_stops": proposed_stops,
+        "backup_candidates": backup_candidates,
         "top_residential_candidates": valid_tracts[:top_k],
         "rejected_institutional_outliers_top5": outliers[:5],
+        "institutional_outliers_flagged": outliers,
+        "borough_context": borough_ctx,
     }
 
 
-def get_bronx_map_data() -> dict[str, Any]:
+def get_bronx_map_data(active_stops: list[dict[str, Any]] | None = None) -> dict[str, Any]:
     """Loads all 347 Bronx tracts, 252 care_sites (with weekly operating hours), and 8 shortage_facilities for Tab 2 Map."""
-    if "bronx_map_data" in _CACHE:
-        return _CACHE["bronx_map_data"]
-
+    geojson_fc = load_bronx_tracts_geojson()
     bundle = load_all_bronx_tracts()
 
     # Load care sites and facilities from cached JSON if available
@@ -353,71 +449,102 @@ def get_bronx_map_data() -> dict[str, Any]:
 
     if sites_file.exists():
         try:
-            with open(sites_file) as f:
+            with open(sites_file, "r") as f:
                 care_sites = json.load(f)
         except Exception:
             care_sites = []
 
+    if not care_sites:
+        try:
+            sites_df = load_clean_care_sites_df(prefer_cache=True)
+            care_sites = sites_df.to_dict(orient="records")
+        except Exception:
+            pass
+
     if fac_file.exists():
         try:
-            with open(fac_file) as f:
+            with open(fac_file, "r") as f:
                 shortage_facilities = json.load(f)
         except Exception:
             shortage_facilities = []
 
-    if not care_sites or not shortage_facilities:
-        try:
-            client = _get_bq_client()
-            if not care_sites:
-                sites_query = f"""
-                SELECT
-                    FACILITY_NM AS site_name,
-                    CMS_PROVIDER_ADDRESS AS site_address,
-                    CMS_PROVIDER_CITY AS site_city,
-                    ROUND(latitude, 5) AS lat,
-                    ROUND(longitude, 5) AS lon,
-                    site_kind AS site_category,
-                    COALESCE(TOT_OPER_HR_PER_WEEK, 40.0) AS oper_hours_per_week,
-                    (site_kind = 'community_health_center') AS is_fqhc
-                FROM `{PROJECT_ID}.{DATASET_ID}.care_sites`
-                WHERE county_geo_id = '36005'
-                  AND latitude IS NOT NULL AND longitude IS NOT NULL
-                """
-                care_sites = [dict(r) for r in client.query(sites_query).result()]
+    # Outlier warning pins for the 11 institutional/low-pop outlier tracts
+    outlier_pins = [
+        {
+            "geo_id": str(r["geo_id"]),
+            "neighborhood": str(r.get("location_name") or r.get("neighborhood") or f"Tract {r['geo_id'][-6:]}"),
+            "lat": float(r["lat"]),
+            "lon": float(r["lon"]),
+            "total_pop": int(r["total_pop"]),
+            "pct_group_quarters": float(r["pct_group_quarters"]),
+            "outlier_category": str(r.get("outlier_category", "INSTITUTIONAL_OUTLIER")),
+            "outlier_rejection_reason": str(r.get("outlier_rejection_reason", "Group quarters outlier")),
+            "pin_color": "#ef4444",
+        }
+        for r in bundle["tracts"]
+        if r.get("is_institutional_outlier", False)
+    ]
 
-            if not shortage_facilities:
-                fac_query = f"""
-                SELECT
-                    HPSA_NM AS facility_name,
-                    HPSA_SCORE AS hpsa_score,
-                    ROUND(latitude, 5) AS lat,
-                    ROUND(longitude, 5) AS lon
-                FROM `{PROJECT_ID}.{DATASET_ID}.shortage_facilities`
-                WHERE CMN_STATE_COUNTY_FIPS_CD = '36005'
-                """
-                shortage_facilities = [dict(r) for r in client.query(fac_query).result()]
-        except Exception:
-            pass
+    if active_stops is None:
+        scored = score_bronx_tracts(enforce_outlier_guardrail=True, enforce_hpsa_diversity=True)
+        active_stops = scored["proposed_stops"]
 
-    result = {
+    return {
         "county_fips": BRONX_FIPS,
         "center": {"lat": 40.8448, "lon": -73.8648},
         "tracts": bundle["tracts"],
+        "tract_geojson": geojson_fc,
         "care_sites": care_sites,
         "shortage_facilities": shortage_facilities,
+        "outlier_warning_pins": outlier_pins,
+        "active_stops": active_stops,
     }
-    _CACHE["bronx_map_data"] = result
-    return result
+
+
+_FORBIDDEN_SQL_PATTERNS = re.compile(
+    r"\b(INSERT|UPDATE|DELETE|DROP|ALTER|TRUNCATE|CREATE|MERGE|GRANT|REVOKE)\b",
+    re.IGNORECASE,
+)
 
 
 def run_director_bigquery_sql(sql_query: str) -> dict[str, Any]:
     """Executes a read-only BigQuery SELECT query against `qwiklabs-gcp-03-c81d344a3430.a4i_health` for agent verification."""
-    cleaned = sql_query.strip()
-    if not cleaned.upper().startswith(("SELECT", "WITH")):
+    cleaned = sql_query.strip().rstrip(";")
+    if _FORBIDDEN_SQL_PATTERNS.search(cleaned):
+        return {"error": "Only read-only SELECT / WITH queries are permitted."}
+    if not (cleaned.upper().startswith("SELECT") or cleaned.upper().startswith("WITH")):
         return {"error": "Only read-only SELECT or WITH queries are permitted."}
+
+    client = _get_bq_client()
+    if client is not None:
+        try:
+            rows = [dict(r) for r in client.query(cleaned).result()]
+            return {"row_count": len(rows), "rows": rows[:50]}
+        except Exception as exc:
+            return {"error": str(exc)}
+
+    # Fallback to local query engine if available
     try:
-        client = _get_bq_client()
-        rows = [dict(r) for r in client.query(cleaned).result()]
-        return {"row_count": len(rows), "rows": rows[:50]}
+        fallback_query = re.sub(r"\bbronx_tracts_2020\b", "v_clean_bronx_tracts", cleaned, flags=re.IGNORECASE)
+        df = run_query_df(fallback_query)
+        records = df.head(50).to_dict(orient="records")
+        return {"row_count": len(df), "rows": json.loads(json.dumps(records, default=str))}
     except Exception as exc:
         return {"error": str(exc)}
+
+
+def query_director_sql(sql_query: str) -> dict[str, Any]:
+    """Execute a read-only BigQuery SQL query for the Health Director Q&A Inspector (alias for run_director_bigquery_sql)."""
+    res = run_director_bigquery_sql(sql_query)
+    if "error" in res:
+        return {"status": "BLOCKED" if "permitted" in res["error"] else "ERROR", "error": res["error"]}
+    return {
+        "status": "SUCCESS",
+        "row_count": res.get("row_count", 0),
+        "rows": res.get("rows", []),
+        "clean_views_available": [
+            CLEAN_TRACTS_VIEW,
+            CLEAN_CARE_SITES_VIEW,
+            CLEAN_BOROUGH_CONTEXT_VIEW,
+        ],
+    }

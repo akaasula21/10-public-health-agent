@@ -1,52 +1,105 @@
 # scripts/
 
-Headless alternatives to the notebook, for when a Colab Enterprise runtime is slow or
-unavailable.
+Headless CLI loaders and dataset cleaning tools for Challenge 5: Dynamic Public Health Equity & Mobile Care Broker.
 
-`load.sh` reaches the same end state as `notebooks/c5_01_load_explore.ipynb`—the same eight tables,
-in the same dataset, in your project. Use the notebook if you can: it only takes two to three
-minutes, it explains what it's doing and why, and the explanations matter. Use this if you can't.
+The pipeline is completely county-agnostic and parameterizable by 5-digit county FIPS, with **Bronx County, NY (`36005`)** configured as the primary choice for the pilot deployment.
 
-## Running it
+---
 
-From the **root of the repo**, in Cloud Shell:
+## 1. Unified County Data Loader (`scripts/load_county_data.py`)
+
+The primary entrypoint is [`scripts/load_county_data.py`](load_county_data.py), backed by [`agent.data.loader.CountyDataLoader`](../agent/data/loader.py). It orchestrates all four pipeline stages:
+1. **Base Tables**: 8 core tables (`burden_tracts`, `exposure_tracts`, `tract_access`, `care_sites`, `care_sites_state`, `shortage_areas`, `shortage_facilities`, `disease_weekly`) loaded either from pre-staged GCS snapshots (fast-path for pre-staged counties) or live federal APIs (CDC PLACES, CDC EPHT PM2.5, HRSA ArcGIS, CDC NSSP).
+2. **Supplemental Tables**: 10 vetted supplemental tables (`places_supplement_tracts`, `svi_supplement_tracts`, `tract_neighbors`, `shortage_areas_all_disciplines`, `shortage_mua_tracts`, `exposure_supplement_tracts`, `climate_heat_risk_tracts`, `noaa_seasonal_heat`, `tract_access_enhanced`, `planner_tract_features`) plus the restricted equity audit dataset (`a4i_health_audit.equity_audit_tracts`, `v_equity_baseline`).
+3. **Data Cleaning & Views**: Materializes production clean views (`v_clean_tracts`, `v_clean_care_sites`, `v_clean_county_context`, and backward-compatible Bronx aliases `v_clean_bronx_tracts`, `v_clean_borough_context`) and exports local offline parquet caches (`data/cache/tracts_<fips>.parquet`).
+4. **Validation**: Verifies row counts, column integrity, and enforces strict zero-leakage isolation of racial/ethnic attributes from the planner dataset.
+
+### Usage
 
 ```bash
-bash scripts/load.sh              # loads Fulton County, GA—the default
+# List all pre-configured counties and pre-staged snapshot FIPS
+python scripts/load_county_data.py --list-counties
+
+# Run end-to-end load for Bronx County, NY pilot (default FIPS: 36005)
+python scripts/load_county_data.py
+
+# Run for another county using pre-staged snapshot (e.g. Fulton GA: 13121, Cook IL: 17031)
+python scripts/load_county_data.py --county-fips 13121
+
+# Run for any other US county using live federal APIs
+python scripts/load_county_data.py --county-fips 24510 --county-name "Baltimore City" --state-abbr MD
+
+# Run only specific stages
+python scripts/load_county_data.py --stage base
+python scripts/load_county_data.py --stage supplement
+python scripts/load_county_data.py --stage clean
+python scripts/load_county_data.py --stage validate
+```
+
+### CLI Options
+
+| Option | Flag | Description | Default |
+|---|---|---|---|
+| `--county-fips` | `-c` | 5-digit county FIPS code | `36005` (Bronx pilot) |
+| `--county-name` | `-n` | County name (optional override) | Resolved from registry |
+| `--state-abbr` | `-s` | 2-letter state abbreviation | Resolved from state FIPS |
+| `--project` | `-p` | Google Cloud project ID | `GOOGLE_CLOUD_PROJECT` |
+| `--dataset` | `-d` | Siting/Planner BigQuery dataset | `a4i_health` |
+| `--audit-dataset` | `-a` | Restricted Equity Audit dataset | `a4i_health_audit` |
+| `--stage` | | Stage: `all`, `base`, `supplement`, `clean`, `validate` | `all` |
+| `--base-source` | | Base load mode: `auto`, `gcs`, `live` | `auto` |
+| `--skip-weather` | | Skip NOAA GSOD historical heat extremes | `False` |
+| `--no-cache` | | Skip local parquet cache export | `False` |
+| `--list-counties` | | Print pre-configured counties table | - |
+
+---
+
+## 2. Shell Loader (`scripts/load.sh`)
+
+Headless bash script loading the 8 core base tables into BigQuery. Updated to default to Bronx County, NY (`36005`):
+
+```bash
+bash scripts/load.sh              # loads Bronx County, NY (36005) pilot
+bash scripts/load.sh 13121        # Fulton County, GA
 bash scripts/load.sh 17031        # Cook County, IL
-bash scripts/load.sh --list       # show every county we've published
+bash scripts/load.sh --list       # show every pre-staged county snapshot
 bash scripts/load.sh --help       # usage
 ```
 
-**It takes a five-digit county FIPS, not a state.** That is a deliberate difference from Challenge
-4, and the reason is worth thirty seconds: **Santa Clara is `06085`, and the leading zero is part of
-the code rather than decoration.** Type it as a number and you get `6085`, which matches nothing.
-Seven states have a FIPS below 10 and the same habit will break the first join you write by hand, so
-the script pads a four-digit argument and tells you it did.
+---
 
-Invoke it with `bash` rather than `./scripts/load.sh`. That way it works whether or not the file's
-executable bit survived however your copy of this repo was created.
+## 3. Supplemental Loader (`scripts/load_supplement_bronx.py`)
 
-## It is safe to run more than once
+Specialized entrypoint to load the 10 supplemental tables and restricted `a4i_health_audit` dataset. Defaults to Bronx (`36005`), but accepts `--county-fips`:
 
-Every table is fully replaced, never appended to. So if you cancel it halfway through, or you
-aren't sure whether it finished, just run it again—the end state is the same either way. The same
-is true if you change your mind about the county: the second run overwrites the first county's
-tables rather than mixing the two.
+```bash
+# Load Bronx pilot supplemental tables (default)
+python scripts/load_supplement_bronx.py
 
-## It will tell you when a county cannot support the challenge
+# Load supplemental tables for another county
+python scripts/load_supplement_bronx.py --county-fips 17031
+```
 
-The last thing the script prints is not about whether the load worked. It is about whether the
-county you picked has the thing you are about to build on:
+---
 
-- **An empty `shortage_areas` is legitimate** and the script says so rather than failing. Four of
-  our six counties have no live federal shortage designations, including the default.
-- **`disease_weekly` can arrive with 201 rows and no data in any of them.** Santa Clara and the
-  Bronx report `Data Unavailable` for every week. The script counts the usable weeks and says
-  loudly when the answer is zero, because that is the only current layer in the challenge and it is
-  invisible in a row count.
-- **The safety-net gap can be flat.** If no tract in your county is further from a clinic that takes
-  the uninsured than from the nearest clinic of any kind, the central measurement of this challenge
-  does not exist there, and you want to know at minute five.
+## 4. Cleaner & Parquet Cache Exporter (`scripts/clean_bronx_data.py`)
 
-None of those stops the load. All three change what you should build.
+Materializes clean views (`v_clean_tracts`, `v_clean_county_context`, `v_clean_bronx_tracts`, `v_clean_borough_context`) and saves local offline parquet caches (`data/cache/tracts_<fips>.parquet` and `data/cache/care_sites_<fips>.parquet`).
+
+```bash
+# Clean Bronx pilot data and export cache (default)
+python scripts/clean_bronx_data.py
+
+# Clean another county
+python scripts/clean_bronx_data.py --county-fips 13121
+```
+
+---
+
+## County-Agnostic Design Features
+
+1. **Explicit Schemas for Empty Shortage Tables**: Counties without active HPSAs or MUAs (e.g. Fulton GA `13121`, Santa Clara CA `06085`, Harris TX `48201`, Travis TX `48453`) upload typed BigQuery schemas (`bigquery.SchemaField`) to prevent schema drift and `NotFound` query crashes.
+2. **Adaptive Distance Weighting**: In dense urban areas like Bronx NY (median distance 0.39 km, 94% of tracts have 0 km distance gap), physical distance is weighted 0.00. In counties with real transit/distance disparities, the cleaner dynamically weights `pr_distance_gap` (15%).
+3. **Dynamic Weather Stations**: Automatically queries the 3 nearest NOAA GSOD weather stations within 75 km for any county, while preserving LaGuardia (`725030`) and Central Park (`725053`) for Bronx County.
+4. **Curated Landmarks & Corridors**: Provides rich local context via [`agent.data.landmarks_catalog`](../agent/data/landmarks_catalog.py) with 85+ tracts and 13 transit corridors for the Bronx pilot, plus major corridors for Fulton, Cook, Santa Clara, Harris, and Travis.
+5. **Strict Governance Isolation**: Zero racial/ethnic columns in `a4i_health`; demographic attributes are strictly confined to `a4i_health_audit` for post-hoc auditing.
